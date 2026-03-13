@@ -1,4 +1,4 @@
-// backend/routes/leadRoutes.js
+// backend/src/routes/leadRoutes.js
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
@@ -11,22 +11,22 @@ const {
     addNote,
     getAnalytics
 } = require('../controllers/leadController');
+const { validate, leadSchema, noteSchema } = require('../utils/validation');
 
 // Protect all routes
 router.use(protect);
 
-// Lead routes
 router.route('/')
     .get(getLeads)
-    .post(createLead);
+    .post(validate(leadSchema), createLead);
 
 router.get('/analytics', getAnalytics);
 
 router.route('/:id')
     .get(getLeadById)
-    .put(updateLead)
+    .put(validate(leadSchema.partial()), updateLead)
     .delete(deleteLead);
 
-router.post('/:id/notes', addNote);
+router.post('/:id/notes', validate(noteSchema), addNote);
 
 module.exports = router;

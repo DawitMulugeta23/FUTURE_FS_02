@@ -1,40 +1,47 @@
-// src/components/Layout/Navbar.jsx
+// src/components/Layout/Navbar.jsx - Updated version
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
 import { FiLogOut, FiUser, FiBarChart2 } from 'react-icons/fi';
+import ThemeToggle from '../UI/ThemeToggle';
 
 const Navbar = () => {
-    const { user, logout } = useAuth();
+    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { user } = useSelector(state => state.auth);
 
     const handleLogout = () => {
-        logout();
+        dispatch(logout());
         navigate('/login');
     };
 
     return (
-        <nav className="bg-white shadow-lg">
+        <nav className="bg-white dark:bg-gray-800 shadow-lg transition-colors duration-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
                     <div className="flex items-center">
                         <Link to="/dashboard" className="flex items-center space-x-2">
-                            <FiBarChart2 className="h-8 w-8 text-primary-600" />
-                            <span className="font-bold text-xl text-gray-900">CRM System</span>
+                            <FiBarChart2 className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+                            <span className="font-bold text-xl text-gray-900 dark:text-white">
+                                CRM System
+                            </span>
                         </Link>
                     </div>
 
                     <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-100">
-                            <FiUser className="text-gray-600" />
-                            <span className="text-sm font-medium text-gray-700">
+                        <ThemeToggle />
+                        
+                        <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700">
+                            <FiUser className="text-gray-600 dark:text-gray-300" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                                 {user?.name}
                             </span>
                         </div>
                         
                         <button
                             onClick={handleLogout}
-                            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                         >
                             <FiLogOut />
                             <span>Logout</span>

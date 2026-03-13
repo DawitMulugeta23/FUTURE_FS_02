@@ -1,67 +1,53 @@
-// src/pages/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+// src/pages/Dashboard.jsx - Updated with Redux
+import React, { useEffect } from 'react';
+import { FiPlus, FiSearch } from 'react-icons/fi';
+import { useDispatch, useSelector } from 'react-redux';
+import Analytics from '../components/Dashboard/Analytics';
 import Navbar from '../components/Layout/Navbar';
 import Sidebar from '../components/Layout/Sidebar';
-import Analytics from '../components/Dashboard/Analytics';
 import LeadCard from '../components/Leads/LeadCard';
 import LeadDetails from '../components/Leads/LeadDetails';
 import LeadForm from '../components/Leads/LeadForm';
-import leadService from '../services/leadService';
-import { FiPlus, FiSearch, FiFilter } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import {
+    fetchAnalytics,
+    fetchLeads,
+    setFilters,
+    setPage,
+    setSelectedLead
+} from '../store/slices/leadSlice';
 
 const Dashboard = () => {
-    const [leads, setLeads] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedLead, setSelectedLead] = useState(null);
-    const [showLeadForm, setShowLeadForm] = useState(false);
-    const [filters, setFilters] = useState({
-        status: 'all',
-        search: '',
-        sort: 'newest'
-    });
-    const [pagination, setPagination] = useState({
-        page: 1,
-        limit: 10,
-        total: 0,
-        pages: 0
-    });
+    const dispatch = useDispatch();
+    const { 
+        leads, 
+        loading, 
+        pagination, 
+        filters,
+        selectedLead 
+    } = useSelector(state => state.leads);
+    const [showLeadForm, setShowLeadForm] = React.useState(false);
 
     useEffect(() => {
-        fetchLeads();
-    }, [filters, pagination.page]);
-
-    const fetchLeads = async () => {
-        try {
-            setLoading(true);
-            const params = {
-                ...filters,
-                page: pagination.page,
-                limit: pagination.limit
-            };
-            if (filters.status === 'all') delete params.status;
-            
-            const response = await leadService.getLeads(params);
-            setLeads(response.data);
-            setPagination(response.pagination);
-        } catch (error) {
-            toast.error(error.response.data?.message || 'Failed to fetch lead data');
-            // Error is already handled by interceptor
-        } finally {
-            setLoading(false);
-        }
-    };
+        dispatch(fetchLeads({
+            ...filters,
+            page: pagination.page,
+            limit: pagination.limit
+        }));
+        dispatch(fetchAnalytics());
+    }, [dispatch, filters, pagination.page, pagination.limit]);
 
     const handleSearch = (e) => {
-        setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }));
+        dispatch(setFilters({ search: e.target.value }));
+        dispatch(setPage(1));
     };
 
     const handleFilterChange = (key, value) => {
-        setFilters(prev => ({ ...prev, [key]: value, page: 1 }));
+        dispatch(setFilters({ [key]: value }));
+        dispatch(setPage(1));
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
             <Navbar />
             
             <div className="flex">
@@ -71,7 +57,9 @@ const Dashboard = () => {
                     <div className="max-w-7xl mx-auto">
                         {/* Header */}
                         <div className="flex justify-between items-center mb-8">
-                            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                Dashboard
+                            </h1>
                             <button
                                 onClick={() => setShowLeadForm(true)}
                                 className="btn-primary flex items-center space-x-2"
@@ -87,7 +75,7 @@ const Dashboard = () => {
                         </div>
                         
                         {/* Filters */}
-                        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
                             <div className="flex flex-wrap gap-4 items-center justify-between">
                                 <div className="flex items-center space-x-4 flex-wrap gap-2">
                                     <div className="relative">
@@ -97,14 +85,18 @@ const Dashboard = () => {
                                             placeholder="Search leads..."
                                             value={filters.search}
                                             onChange={handleSearch}
-                                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                     focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                     dark:bg-gray-700 dark:text-white"
                                         />
                                     </div>
                                     
                                     <select
                                         value={filters.status}
                                         onChange={(e) => handleFilterChange('status', e.target.value)}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                 focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                 dark:bg-gray-700 dark:text-white"
                                     >
                                         <option value="all">All Status</option>
                                         <option value="new">New</option>
@@ -117,7 +109,9 @@ const Dashboard = () => {
                                     <select
                                         value={filters.sort}
                                         onChange={(e) => handleFilterChange('sort', e.target.value)}
-                                        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                 focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                 dark:bg-gray-700 dark:text-white"
                                     >
                                         <option value="newest">Newest First</option>
                                         <option value="oldest">Oldest First</option>
@@ -126,7 +120,7 @@ const Dashboard = () => {
                                     </select>
                                 </div>
                                 
-                                <div className="text-sm text-gray-500">
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
                                     Showing {leads.length} of {pagination.total} leads
                                 </div>
                             </div>
@@ -136,10 +130,10 @@ const Dashboard = () => {
                         {loading ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
-                                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                                        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-pulse">
+                                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
                                     </div>
                                 ))}
                             </div>
@@ -151,15 +145,17 @@ const Dashboard = () => {
                                             <LeadCard
                                                 key={lead._id}
                                                 lead={lead}
-                                                onClick={setSelectedLead}
+                                                onClick={(lead) => dispatch(setSelectedLead(lead))}
                                             />
                                         ))}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12">
-                                        <div className="text-gray-400 text-6xl mb-4">📭</div>
-                                        <h3 className="text-xl font-medium text-gray-900 mb-2">No leads found</h3>
-                                        <p className="text-gray-500 mb-6">
+                                        <div className="text-gray-400 dark:text-gray-600 text-6xl mb-4">📭</div>
+                                        <h3 className="text-xl font-medium text-gray-900 dark:text-white mb-2">
+                                            No leads found
+                                        </h3>
+                                        <p className="text-gray-500 dark:text-gray-400 mb-6">
                                             {filters.search 
                                                 ? 'Try adjusting your search or filters' 
                                                 : 'Get started by adding your first lead'}
@@ -182,9 +178,11 @@ const Dashboard = () => {
                         {pagination.pages > 1 && (
                             <div className="flex justify-center mt-8 space-x-2">
                                 <button
-                                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                                    onClick={() => dispatch(setPage(pagination.page - 1))}
                                     disabled={pagination.page === 1}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                             disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 
+                                             dark:hover:bg-gray-700 dark:text-white transition-colors"
                                 >
                                     Previous
                                 </button>
@@ -192,9 +190,11 @@ const Dashboard = () => {
                                     Page {pagination.page} of {pagination.pages}
                                 </span>
                                 <button
-                                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                                    onClick={() => dispatch(setPage(pagination.page + 1))}
                                     disabled={pagination.page === pagination.pages}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                             disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 
+                                             dark:hover:bg-gray-700 dark:text-white transition-colors"
                                 >
                                     Next
                                 </button>
@@ -209,7 +209,11 @@ const Dashboard = () => {
                 <LeadForm
                     onClose={() => setShowLeadForm(false)}
                     onSuccess={() => {
-                        fetchLeads();
+                        dispatch(fetchLeads({
+                            ...filters,
+                            page: pagination.page,
+                            limit: pagination.limit
+                        }));
                         setShowLeadForm(false);
                     }}
                 />
@@ -218,10 +222,14 @@ const Dashboard = () => {
             {selectedLead && (
                 <LeadDetails
                     lead={selectedLead}
-                    onClose={() => setSelectedLead(null)}
+                    onClose={() => dispatch(setSelectedLead(null))}
                     onUpdate={() => {
-                        fetchLeads();
-                        setSelectedLead(null);
+                        dispatch(fetchLeads({
+                            ...filters,
+                            page: pagination.page,
+                            limit: pagination.limit
+                        }));
+                        dispatch(setSelectedLead(null));
                     }}
                 />
             )}

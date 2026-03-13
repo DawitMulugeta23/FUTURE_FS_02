@@ -1,9 +1,11 @@
-// src/components/Layout/Sidebar.jsx
-import React from 'react';
+// src/components/Layout/Sidebar.jsx - Updated version
+import { FiHome, FiPieChart, FiSettings, FiUsers } from 'react-icons/fi';
+import { useSelector } from 'react-redux';
 import { NavLink } from 'react-router-dom';
-import { FiHome, FiUsers, FiPieChart, FiSettings } from 'react-icons/fi';
 
 const Sidebar = () => {
+    const sidebarOpen = useSelector(state => state.ui.sidebarOpen);
+
     const menuItems = [
         { path: '/dashboard', name: 'Dashboard', icon: FiHome },
         { path: '/leads', name: 'Leads', icon: FiUsers },
@@ -11,8 +13,10 @@ const Sidebar = () => {
         { path: '/settings', name: 'Settings', icon: FiSettings },
     ];
 
+    if (!sidebarOpen) return null;
+
     return (
-        <aside className="w-64 bg-white shadow-lg h-[calc(100vh-4rem)]">
+        <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg h-[calc(100vh-4rem)] transition-colors duration-200">
             <nav className="mt-8 px-4">
                 <ul className="space-y-2">
                     {menuItems.map((item) => (
@@ -22,8 +26,8 @@ const Sidebar = () => {
                                 className={({ isActive }) =>
                                     `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                                         isActive
-                                            ? 'bg-primary-50 text-primary-600'
-                                            : 'text-gray-600 hover:bg-gray-50'
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                                     }`
                                 }
                             >
