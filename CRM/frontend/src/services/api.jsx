@@ -2,38 +2,30 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Handle environment variables safely
-const getBaseURL = () => {
-    // Check if we're in a browser environment
-    if (typeof window !== 'undefined') {
-        // Try to get from window.env or use default
-        return window?.env?.REACT_APP_API_URL || 'http://localhost:5000/api';
-    }
-    return 'http://localhost:5000/api';
-};
-
-const API_URL = getBaseURL();
+const API_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
     baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
+    timeout: 10000,
 });
 
-// Request interceptor to add token
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
-        try {
-            const userInfo = localStorage.getItem('userInfo');
-            if (userInfo) {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+            try {
                 const { token } = JSON.parse(userInfo);
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
                 }
+            } catch (error) {
+                console.error('Error parsing user info:', error);
             }
-        } catch (error) {
-            console.error('Error parsing user info:', error);
         }
         return config;
     },
@@ -42,21 +34,28 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor to handle errors
+// Response interceptor
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('userInfo');
-            // Only redirect if we're in a browser environment
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+        if (error.code === 'ECONNABORTED') {
+            toast.error('Request timeout. Please check if backend server is running.');
+        } else if (error.response) {
+            if (error.response.status === 401) {
+                localStorage.removeItem('userInfo');
+                if (!window.location.pathname.includes('/login')) {
+                    window.location.href = '/login';
+                }
+                toast.error('Session expired. Please login again.');
+            } else {
+                const message = error.response.data?.message || 'An error occurred';
+                toast.error(message);
             }
-            toast.error('Session expired. Please login again.');
+        } else if (error.request) {
+            toast.error('Cannot connect to server. Please check if backend is running.');
+        } else {
+            toast.error('Network error. Please try again.');
         }
-        
-        const message = error.response?.data?.message || 'An error occurred';
-        toast.error(message);
         
         return Promise.reject(error);
     }

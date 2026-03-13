@@ -1,4 +1,4 @@
-// frontend/src/store/slices/leadSlice.js
+// src/store/slices/leadSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import leadService from '../../services/leadService';
 import toast from 'react-hot-toast';
@@ -20,10 +20,11 @@ export const createLead = createAsyncThunk(
     async (leadData, { rejectWithValue }) => {
         try {
             const response = await leadService.createLead(leadData);
-            toast.success('Lead created successfully');
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to create lead');
+            const message = error.response?.data?.message || error.message || 'Failed to create lead';
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
@@ -33,10 +34,11 @@ export const updateLead = createAsyncThunk(
     async ({ id, data }, { rejectWithValue }) => {
         try {
             const response = await leadService.updateLead(id, data);
-            toast.success('Lead updated successfully');
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to update lead');
+            const message = error.response?.data?.message || error.message || 'Failed to update lead';
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
@@ -46,10 +48,11 @@ export const deleteLead = createAsyncThunk(
     async (id, { rejectWithValue }) => {
         try {
             await leadService.deleteLead(id);
-            toast.success('Lead deleted successfully');
             return id;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to delete lead');
+            const message = error.response?.data?.message || error.message || 'Failed to delete lead';
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
@@ -59,10 +62,11 @@ export const addNote = createAsyncThunk(
     async ({ id, content }, { rejectWithValue }) => {
         try {
             const response = await leadService.addNote(id, content);
-            toast.success('Note added successfully');
             return response.data;
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || 'Failed to add note');
+            const message = error.response?.data?.message || error.message || 'Failed to add note';
+            toast.error(message);
+            return rejectWithValue(message);
         }
     }
 );
@@ -84,7 +88,19 @@ const leadSlice = createSlice({
     initialState: {
         leads: [],
         selectedLead: null,
-        analytics: null,
+        analytics: {
+            total: 0,
+            recent: 0,
+            conversionRate: '0',
+            byStatus: {
+                new: 0,
+                contacted: 0,
+                qualified: 0,
+                converted: 0,
+                lost: 0
+            },
+            bySource: []
+        },
         pagination: {
             page: 1,
             limit: 10,
@@ -115,6 +131,9 @@ const leadSlice = createSlice({
         },
         setPage: (state, action) => {
             state.pagination.page = action.payload;
+        },
+        clearError: (state) => {
+            state.error = null;
         }
     },
     extraReducers: (builder) => {
@@ -126,51 +145,123 @@ const leadSlice = createSlice({
             })
             .addCase(fetchLeads.fulfilled, (state, action) => {
                 state.loading = false;
-                state.leads = action.payload.data;
-                state.pagination = action.payload.pagination;
+                state.leads = action.payload?.data || [];
+                state.pagination = action.payload?.pagination || {
+                    page: 1,
+                    limit: 10,
+                    total: 0,
+                    pages: 0
+                };
             })
             .addCase(fetchLeads.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-                toast.error(action.payload);
+                state.leads = [];
             })
             // Create Lead
+            .addCase(createLead.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(createLead.fulfilled, (state, action) => {
-                state.leads.unshift(action.payload);
+                state.loading = false;
+                if (action.payload) {
+                    state.leads = [action.payload, ...state.leads];
+                    toast.success('Lead created successfully');
+                }
+            })
+            .addCase(createLead.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             })
             // Update Lead
+            .addCase(updateLead.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(updateLead.fulfilled, (state, action) => {
-                const index = state.leads.findIndex(lead => lead._id === action.payload._id);
-                if (index !== -1) {
-                    state.leads[index] = action.payload;
-                }
-                if (state.selectedLead?._id === action.payload._id) {
-                    state.selectedLead = action.payload;
+                state.loading = false;
+                if (action.payload) {
+                    const index = state.leads.findIndex(lead => lead._id === action.payload._id);
+                    if (index !== -1) {
+                        state.leads[index] = action.payload;
+                    }
+                    if (state.selectedLead?._id === action.payload._id) {
+                        state.selectedLead = action.payload;
+                    }
+                    toast.success('Lead updated successfully');
                 }
             })
+            .addCase(updateLead.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
             // Delete Lead
+            .addCase(deleteLead.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(deleteLead.fulfilled, (state, action) => {
+                state.loading = false;
                 state.leads = state.leads.filter(lead => lead._id !== action.payload);
                 if (state.selectedLead?._id === action.payload) {
                     state.selectedLead = null;
                 }
+                toast.success('Lead deleted successfully');
+            })
+            .addCase(deleteLead.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             })
             // Add Note
+            .addCase(addNote.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(addNote.fulfilled, (state, action) => {
-                const index = state.leads.findIndex(lead => lead._id === action.payload._id);
-                if (index !== -1) {
-                    state.leads[index] = action.payload;
-                }
-                if (state.selectedLead?._id === action.payload._id) {
-                    state.selectedLead = action.payload;
+                state.loading = false;
+                if (action.payload) {
+                    const index = state.leads.findIndex(lead => lead._id === action.payload._id);
+                    if (index !== -1) {
+                        state.leads[index] = action.payload;
+                    }
+                    if (state.selectedLead?._id === action.payload._id) {
+                        state.selectedLead = action.payload;
+                    }
+                    toast.success('Note added successfully');
                 }
             })
+            .addCase(addNote.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
             // Fetch Analytics
+            .addCase(fetchAnalytics.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
             .addCase(fetchAnalytics.fulfilled, (state, action) => {
-                state.analytics = action.payload;
+                state.loading = false;
+                state.analytics = action.payload || {
+                    total: 0,
+                    recent: 0,
+                    conversionRate: '0',
+                    byStatus: {
+                        new: 0,
+                        contacted: 0,
+                        qualified: 0,
+                        converted: 0,
+                        lost: 0
+                    },
+                    bySource: []
+                };
+            })
+            .addCase(fetchAnalytics.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
             });
     }
 });
 
-export const { setSelectedLead, setFilters, clearFilters, setPage } = leadSlice.actions;
+export const { setSelectedLead, setFilters, clearFilters, setPage, clearError } = leadSlice.actions;
 export default leadSlice.reducer;

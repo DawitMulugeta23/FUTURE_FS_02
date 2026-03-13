@@ -1,4 +1,4 @@
-// backend/controllers/leadController.js
+// backend/src/controllers/leadController.js
 const Lead = require('../models/Lead');
 
 // @desc    Get all leads
@@ -9,6 +9,9 @@ const getLeads = async (req, res) => {
         const { status, search, sort, page = 1, limit = 10 } = req.query;
         
         let query = {};
+        
+        // Only show leads created by the current user or all if admin
+        query.createdBy = req.user.id;
         
         // Filter by status
         if (status && status !== 'all') {
@@ -26,41 +29,44 @@ const getLeads = async (req, res) => {
         }
         
         // Pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 10;
+        const skip = (pageNum - 1) * limitNum;
         
         // Sorting
         let sortOption = { createdAt: -1 }; // Default: newest first
         if (sort === 'oldest') {
             sortOption = { createdAt: 1 };
         } else if (sort === 'name') {
-            sortOption = { firstName: 1 };
+            sortOption = { firstName: 1, lastName: 1 };
         } else if (sort === 'status') {
-            sortOption = { status: 1 };
+            sortOption = { status: 1, createdAt: -1 };
         }
         
         const leads = await Lead.find(query)
             .sort(sortOption)
-            .limit(parseInt(limit))
+            .limit(limitNum)
             .skip(skip)
             .populate('createdBy', 'name email')
             .populate('notes.createdBy', 'name');
         
         const total = await Lead.countDocuments(query);
         
-        res.json({
+        res.status(200).json({
             success: true,
             data: leads,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: pageNum,
+                limit: limitNum,
                 total,
-                pages: Math.ceil(total / parseInt(limit))
+                pages: Math.ceil(total / limitNum)
             }
         });
     } catch (error) {
+        console.error('Error in getLeads:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while fetching leads'
         });
     }
 };
@@ -80,15 +86,24 @@ const getLeadById = async (req, res) => {
                 message: 'Lead not found'
             });
         }
+
+        // Check if user owns the lead or is admin
+        if (lead.createdBy._id.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to access this lead'
+            });
+        }
         
-        res.json({
+        res.status(200).json({
             success: true,
             data: lead
         });
     } catch (error) {
+        console.error('Error in getLeadById:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while fetching lead'
         });
     }
 };
@@ -98,10 +113,21 @@ const getLeadById = async (req, res) => {
 // @access  Private
 const createLead = async (req, res) => {
     try {
+        console.log('Creating lead with data:', req.body);
+        console.log('User ID:', req.user.id);
+        
         const { firstName, lastName, email, phone, company, source } = req.body;
         
+        // Validate required fields
+        if (!firstName || !lastName || !email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide firstName, lastName, and email'
+            });
+        }
+        
         // Check if lead exists
-        const existingLead = await Lead.findOne({ email });
+        const existingLead = await Lead.findOne({ email, createdBy: req.user.id });
         if (existingLead) {
             return res.status(400).json({
                 success: false,
@@ -109,24 +135,48 @@ const createLead = async (req, res) => {
             });
         }
         
-        const lead = await Lead.create({
+        const leadData = {
             firstName,
             lastName,
             email,
-            phone,
-            company,
-            source,
-            createdBy: req.user.id
-        });
+            phone: phone || '',
+            company: company || '',
+            source: source || 'website',
+            status: 'new',
+            createdBy: req.user.id,
+            notes: [],
+            convertedAt: null // Initialize as null
+        };
+        
+        console.log('Creating lead with data:', leadData);
+        
+        const lead = await Lead.create(leadData);
+        
+        // Populate the createdBy field
+        const populatedLead = await Lead.findById(lead._id)
+            .populate('createdBy', 'name email');
+        
+        console.log('Lead created successfully:', populatedLead._id);
         
         res.status(201).json({
             success: true,
-            data: lead
+            data: populatedLead,
+            message: 'Lead created successfully'
         });
     } catch (error) {
+        console.error('Error in createLead:', error);
+        
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Lead with this email already exists'
+            });
+        }
+        
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while creating lead'
         });
     }
 };
@@ -144,6 +194,14 @@ const updateLead = async (req, res) => {
                 message: 'Lead not found'
             });
         }
+
+        // Check if user owns the lead or is admin
+        if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this lead'
+            });
+        }
         
         // Update fields
         const fieldsToUpdate = ['firstName', 'lastName', 'email', 'phone', 'company', 'source', 'status'];
@@ -153,16 +211,32 @@ const updateLead = async (req, res) => {
             }
         });
         
+        // Handle convertedAt logic in controller instead of middleware
+        if (req.body.status === 'converted' && lead.status !== 'converted') {
+            lead.convertedAt = Date.now();
+        } else if (req.body.status && req.body.status !== 'converted' && lead.status === 'converted') {
+            // If changing from converted to another status, you might want to clear convertedAt
+            // Uncomment the next line if you want this behavior
+            // lead.convertedAt = null;
+        }
+        
         await lead.save();
         
-        res.json({
+        // Populate the updated lead
+        const updatedLead = await Lead.findById(lead._id)
+            .populate('createdBy', 'name email')
+            .populate('notes.createdBy', 'name');
+        
+        res.status(200).json({
             success: true,
-            data: lead
+            data: updatedLead,
+            message: 'Lead updated successfully'
         });
     } catch (error) {
+        console.error('Error in updateLead:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while updating lead'
         });
     }
 };
@@ -180,17 +254,26 @@ const deleteLead = async (req, res) => {
                 message: 'Lead not found'
             });
         }
+
+        // Check if user owns the lead or is admin
+        if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this lead'
+            });
+        }
         
         await lead.deleteOne();
         
-        res.json({
+        res.status(200).json({
             success: true,
             message: 'Lead removed successfully'
         });
     } catch (error) {
+        console.error('Error in deleteLead:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while deleting lead'
         });
     }
 };
@@ -208,10 +291,26 @@ const addNote = async (req, res) => {
                 message: 'Lead not found'
             });
         }
+
+        // Check if user owns the lead or is admin
+        if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to add notes to this lead'
+            });
+        }
+        
+        if (!req.body.content) {
+            return res.status(400).json({
+                success: false,
+                message: 'Note content is required'
+            });
+        }
         
         lead.notes.push({
             content: req.body.content,
-            createdBy: req.user.id
+            createdBy: req.user.id,
+            createdAt: Date.now()
         });
         
         await lead.save();
@@ -219,14 +318,16 @@ const addNote = async (req, res) => {
         const updatedLead = await Lead.findById(req.params.id)
             .populate('notes.createdBy', 'name');
         
-        res.json({
+        res.status(200).json({
             success: true,
-            data: updatedLead
+            data: updatedLead,
+            message: 'Note added successfully'
         });
     } catch (error) {
+        console.error('Error in addNote:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while adding note'
         });
     }
 };
@@ -236,13 +337,18 @@ const addNote = async (req, res) => {
 // @access  Private
 const getAnalytics = async (req, res) => {
     try {
-        const totalLeads = await Lead.countDocuments();
+        // Get analytics only for current user's leads
+        const userId = req.user.id;
+        
+        const totalLeads = await Lead.countDocuments({ createdBy: userId });
         
         const leadsByStatus = await Lead.aggregate([
+            { $match: { createdBy: userId } },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
         
         const leadsBySource = await Lead.aggregate([
+            { $match: { createdBy: userId } },
             { $group: { _id: '$source', count: { $sum: 1 } } }
         ]);
         
@@ -251,11 +357,15 @@ const getAnalytics = async (req, res) => {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
         const recentLeads = await Lead.countDocuments({
+            createdBy: userId,
             createdAt: { $gte: thirtyDaysAgo }
         });
         
         // Conversion rate
-        const convertedLeads = await Lead.countDocuments({ status: 'converted' });
+        const convertedLeads = await Lead.countDocuments({ 
+            createdBy: userId,
+            status: 'converted' 
+        });
         const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
         
         const statusMap = {
@@ -270,7 +380,7 @@ const getAnalytics = async (req, res) => {
             statusMap[item._id] = item.count;
         });
         
-        res.json({
+        res.status(200).json({
             success: true,
             data: {
                 total: totalLeads,
@@ -281,9 +391,10 @@ const getAnalytics = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error in getAnalytics:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: error.message || 'Server error while fetching analytics'
         });
     }
 };

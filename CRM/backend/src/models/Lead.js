@@ -1,4 +1,4 @@
-// backend/models/Lead.js
+// backend/src/models/Lead.js
 const mongoose = require('mongoose');
 
 const noteSchema = new mongoose.Schema({
@@ -32,6 +32,7 @@ const leadSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add email'],
         lowercase: true,
+        trim: true,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
             'Please add a valid email'
@@ -39,11 +40,13 @@ const leadSchema = new mongoose.Schema({
     },
     phone: {
         type: String,
-        trim: true
+        trim: true,
+        default: ''
     },
     company: {
         type: String,
-        trim: true
+        trim: true,
+        default: ''
     },
     source: {
         type: String,
@@ -55,9 +58,13 @@ const leadSchema = new mongoose.Schema({
         enum: ['new', 'contacted', 'qualified', 'converted', 'lost'],
         default: 'new'
     },
-    notes: [noteSchema],
+    notes: {
+        type: [noteSchema],
+        default: []
+    },
     convertedAt: {
-        type: Date
+        type: Date,
+        default: null
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -68,12 +75,9 @@ const leadSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Update convertedAt when status changes to converted
-leadSchema.pre('save', function(next) {
-    if (this.isModified('status') && this.status === 'converted' && !this.convertedAt) {
-        this.convertedAt = Date.now();
-    }
-    next();
-});
+// Create compound index for email + createdBy to ensure unique leads per user
+leadSchema.index({ email: 1, createdBy: 1 }, { unique: true });
+
+// No middleware - all logic handled in controllers
 
 module.exports = mongoose.model('Lead', leadSchema);

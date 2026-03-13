@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.jsx
 import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Provider, useDispatch, useSelector } from 'react-redux';
@@ -21,12 +21,45 @@ const PublicRoute = ({ children }) => {
 
 function AppContent() {
     const dispatch = useDispatch();
-    const theme = useSelector(state => state.ui.theme);
+    const theme = useSelector(state => state.ui?.theme || 'light');
 
     useEffect(() => {
-        // Apply theme on initial load
-        dispatch(setTheme(theme));
-    }, [dispatch, theme]);
+        // Apply theme on mount
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        let initialTheme = 'light';
+        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
+            initialTheme = savedTheme;
+        } else if (systemPrefersDark) {
+            initialTheme = 'dark';
+        }
+        
+        dispatch(setTheme(initialTheme));
+        
+        // Listen for system theme changes
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = (e) => {
+            if (!localStorage.getItem('theme')) {
+                dispatch(setTheme(e.matches ? 'dark' : 'light'));
+            }
+        };
+        
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [dispatch]);
+
+    // Apply theme whenever it changes
+    useEffect(() => {
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+            root.style.colorScheme = 'dark';
+        } else {
+            root.classList.remove('dark');
+            root.style.colorScheme = 'light';
+        }
+    }, [theme]);
 
     return (
         <>
@@ -53,7 +86,7 @@ function AppContent() {
                 toastOptions={{
                     duration: 4000,
                     style: {
-                        background: '#363636',
+                        background: theme === 'dark' ? '#1f2937' : '#363636',
                         color: '#fff',
                     },
                     success: {

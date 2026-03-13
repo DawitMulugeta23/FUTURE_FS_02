@@ -1,4 +1,4 @@
-// frontend/src/store/slices/authSlice.js
+// src/store/slices/authSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
 import toast from 'react-hot-toast';
@@ -55,12 +55,10 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.user = action.payload;
                 localStorage.setItem('userInfo', JSON.stringify(action.payload));
-                toast.success('Registration successful!');
             })
             .addCase(register.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-                toast.error(action.payload);
             })
             // Login
             .addCase(login.pending, (state) => {
@@ -71,12 +69,10 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.user = action.payload;
                 localStorage.setItem('userInfo', JSON.stringify(action.payload));
-                toast.success('Login successful!');
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
-                toast.error(action.payload);
             });
     }
 });
