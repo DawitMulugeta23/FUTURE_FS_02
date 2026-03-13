@@ -1,9 +1,9 @@
 // src/components/Auth/Register.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
+import toast from 'react-hot-toast'; // Changed from react-toastify to react-hot-toast
+import { FiLock, FiMail, FiUser, FiUserPlus } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiUser, FiMail, FiLock, FiUserPlus } from 'react-icons/fi';
-import toast from 'react-hot-toast'; // Changed from react-toastify to react-hot-toast
 
 const Register = () => {
     const [formData, setFormData] = useState({
