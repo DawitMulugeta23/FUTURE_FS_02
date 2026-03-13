@@ -4,12 +4,36 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    @apply transition-colors duration-200;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 transition-colors duration-200;
+    @apply bg-gray-50 text-gray-900 m-0 min-h-screen;
   }
   
-  .dark body {
+  /* Dark mode styles */
+  html.dark body {
     @apply bg-gray-900 text-gray-100;
+  }
+
+  /* Ensure all base elements get dark mode */
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.dark input,
+  html.dark select,
+  html.dark textarea {
+    @apply bg-gray-800 border-gray-700 text-white;
+  }
+
+  html.dark button:not(.btn-primary):not(.btn-secondary):not(.btn-danger) {
+    @apply text-gray-200;
   }
 }
 

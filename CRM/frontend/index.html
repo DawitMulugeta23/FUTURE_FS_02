@@ -12,13 +12,26 @@
           const savedTheme = localStorage.getItem('theme');
           const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           
-          if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.style.colorScheme = 'dark';
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.style.colorScheme = 'light';
+          let theme = 'light';
+          if (savedTheme === 'dark' || savedTheme === 'light') {
+            theme = savedTheme;
+          } else if (systemPrefersDark) {
+            theme = 'dark';
           }
+          
+          const root = document.documentElement;
+          if (theme === 'dark') {
+            root.classList.add('dark');
+            root.setAttribute('data-theme', 'dark');
+          } else {
+            root.classList.remove('dark');
+            root.removeAttribute('data-theme');
+          }
+          
+          // Also set on body
+          document.body.className = theme === 'dark' ? 'dark' : '';
+          
+          console.log('Initial theme set to:', theme);
         } catch (e) {
           console.error('Error applying theme:', e);
         }

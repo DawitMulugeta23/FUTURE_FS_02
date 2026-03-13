@@ -24,13 +24,15 @@ const applyTheme = (theme) => {
         const root = document.documentElement;
         if (theme === 'dark') {
             root.classList.add('dark');
-            root.style.colorScheme = 'dark';
+            root.setAttribute('data-theme', 'dark');
+            document.body.classList.add('dark');
         } else {
             root.classList.remove('dark');
-            root.style.colorScheme = 'light';
+            root.removeAttribute('data-theme');
+            document.body.classList.remove('dark');
         }
         localStorage.setItem('theme', theme);
-        console.log('Theme applied:', theme); // For debugging
+        console.log('Theme applied:', theme, 'Root classes:', root.classList.toString());
     } catch (error) {
         console.error('Error applying theme:', error);
     }

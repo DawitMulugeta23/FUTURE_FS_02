@@ -23,24 +23,28 @@ function AppContent() {
     const dispatch = useDispatch();
     const theme = useSelector(state => state.ui?.theme || 'light');
 
+    // Apply theme on mount and whenever theme changes
     useEffect(() => {
-        // Apply theme on mount
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        let initialTheme = 'light';
-        if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-            initialTheme = savedTheme;
-        } else if (systemPrefersDark) {
-            initialTheme = 'dark';
+        const root = document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+            root.setAttribute('data-theme', 'dark');
+            document.body.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+            root.removeAttribute('data-theme');
+            document.body.classList.remove('dark');
         }
-        
-        dispatch(setTheme(initialTheme));
-        
-        // Listen for system theme changes
+        console.log('Theme applied from AppContent:', theme);
+    }, [theme]);
+
+    // Listen for system theme changes
+    useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        
         const handleChange = (e) => {
-            if (!localStorage.getItem('theme')) {
+            const savedTheme = localStorage.getItem('theme');
+            if (!savedTheme) {
                 dispatch(setTheme(e.matches ? 'dark' : 'light'));
             }
         };
@@ -48,18 +52,6 @@ function AppContent() {
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, [dispatch]);
-
-    // Apply theme whenever it changes
-    useEffect(() => {
-        const root = document.documentElement;
-        if (theme === 'dark') {
-            root.classList.add('dark');
-            root.style.colorScheme = 'dark';
-        } else {
-            root.classList.remove('dark');
-            root.style.colorScheme = 'light';
-        }
-    }, [theme]);
 
     return (
         <>

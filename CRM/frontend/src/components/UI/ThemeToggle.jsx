@@ -1,14 +1,15 @@
 // src/components/UI/ThemeToggle.jsx
-import { FiMoon, FiSun } from 'react-icons/fi';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleTheme } from '../../store/slices/uiSlice';
+import { FiSun, FiMoon } from 'react-icons/fi';
 
 const ThemeToggle = () => {
     const dispatch = useDispatch();
     const theme = useSelector(state => state.ui?.theme || 'light');
 
     const handleToggle = () => {
-        console.log('Toggling theme from:', theme);
+        console.log('Toggling theme from:', theme, 'to:', theme === 'light' ? 'dark' : 'light');
         dispatch(toggleTheme());
     };
 
