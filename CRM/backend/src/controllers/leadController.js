@@ -1,17 +1,21 @@
+// backend/controllers/leadController.js
 const Lead = require('../models/Lead');
 
-// Get all leads
+// @desc    Get all leads
+// @route   GET /api/leads
+// @access  Private
 const getLeads = async (req, res) => {
     try {
-        const { status, search, sort } = req.query;
+        const { status, search, sort, page = 1, limit = 10 } = req.query;
+        
         let query = {};
         
         // Filter by status
-        if (status) {
+        if (status && status !== 'all') {
             query.status = status;
         }
         
-        // Search by name or email
+        // Search functionality
         if (search) {
             query.$or = [
                 { firstName: { $regex: search, $options: 'i' } },
@@ -21,45 +25,88 @@ const getLeads = async (req, res) => {
             ];
         }
         
+        // Pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        
         // Sorting
         let sortOption = { createdAt: -1 }; // Default: newest first
         if (sort === 'oldest') {
             sortOption = { createdAt: 1 };
         } else if (sort === 'name') {
             sortOption = { firstName: 1 };
+        } else if (sort === 'status') {
+            sortOption = { status: 1 };
         }
         
-        const leads = await Lead.find(query).sort(sortOption);
-        res.json(leads);
+        const leads = await Lead.find(query)
+            .sort(sortOption)
+            .limit(parseInt(limit))
+            .skip(skip)
+            .populate('createdBy', 'name email')
+            .populate('notes.createdBy', 'name');
+        
+        const total = await Lead.countDocuments(query);
+        
+        res.json({
+            success: true,
+            data: leads,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Get single lead
+// @desc    Get single lead
+// @route   GET /api/leads/:id
+// @access  Private
 const getLeadById = async (req, res) => {
     try {
-        const lead = await Lead.findById(req.params.id);
+        const lead = await Lead.findById(req.params.id)
+            .populate('createdBy', 'name email')
+            .populate('notes.createdBy', 'name');
+        
         if (!lead) {
-            return res.status(404).json({ message: 'Lead not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Lead not found'
+            });
         }
-        res.json(lead);
+        
+        res.json({
+            success: true,
+            data: lead
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Create new lead
+// @desc    Create new lead
+// @route   POST /api/leads
+// @access  Private
 const createLead = async (req, res) => {
     try {
         const { firstName, lastName, email, phone, company, source } = req.body;
         
-        // Check if lead already exists
+        // Check if lead exists
         const existingLead = await Lead.findOne({ email });
         if (existingLead) {
-            return res.status(400).json({ message: 'Lead with this email already exists' });
+            return res.status(400).json({
+                success: false,
+                message: 'Lead with this email already exists'
+            });
         }
         
         const lead = await Lead.create({
@@ -68,23 +115,34 @@ const createLead = async (req, res) => {
             email,
             phone,
             company,
-            source
+            source,
+            createdBy: req.user.id
         });
         
-        res.status(201).json(lead);
+        res.status(201).json({
+            success: true,
+            data: lead
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Update lead
+// @desc    Update lead
+// @route   PUT /api/leads/:id
+// @access  Private
 const updateLead = async (req, res) => {
     try {
-        const lead = await Lead.findById(req.params.id);
+        let lead = await Lead.findById(req.params.id);
         
         if (!lead) {
-            return res.status(404).json({ message: 'Lead not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Lead not found'
+            });
         }
         
         // Update fields
@@ -95,87 +153,138 @@ const updateLead = async (req, res) => {
             }
         });
         
-        // If status changed to converted, set convertedAt
-        if (req.body.status === 'converted' && lead.status !== 'converted') {
-            lead.convertedAt = Date.now();
-        }
+        await lead.save();
         
-        const updatedLead = await lead.save();
-        res.json(updatedLead);
+        res.json({
+            success: true,
+            data: lead
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Delete lead
+// @desc    Delete lead
+// @route   DELETE /api/leads/:id
+// @access  Private
 const deleteLead = async (req, res) => {
     try {
         const lead = await Lead.findById(req.params.id);
         
         if (!lead) {
-            return res.status(404).json({ message: 'Lead not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Lead not found'
+            });
         }
         
-        await lead.remove();
-        res.json({ message: 'Lead removed' });
+        await lead.deleteOne();
+        
+        res.json({
+            success: true,
+            message: 'Lead removed successfully'
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Add note to lead
+// @desc    Add note to lead
+// @route   POST /api/leads/:id/notes
+// @access  Private
 const addNote = async (req, res) => {
     try {
         const lead = await Lead.findById(req.params.id);
         
         if (!lead) {
-            return res.status(404).json({ message: 'Lead not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Lead not found'
+            });
         }
         
         lead.notes.push({
             content: req.body.content,
-            createdBy: req.user._id
+            createdBy: req.user.id
         });
         
         await lead.save();
-        res.json(lead);
+        
+        const updatedLead = await Lead.findById(req.params.id)
+            .populate('notes.createdBy', 'name');
+        
+        res.json({
+            success: true,
+            data: updatedLead
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 
-// Get analytics
+// @desc    Get lead analytics
+// @route   GET /api/leads/analytics
+// @access  Private
 const getAnalytics = async (req, res) => {
     try {
         const totalLeads = await Lead.countDocuments();
-        const newLeads = await Lead.countDocuments({ status: 'new' });
-        const contactedLeads = await Lead.countDocuments({ status: 'contacted' });
-        const qualifiedLeads = await Lead.countDocuments({ status: 'qualified' });
-        const convertedLeads = await Lead.countDocuments({ status: 'converted' });
-        const lostLeads = await Lead.countDocuments({ status: 'lost' });
         
-        // Leads by source
+        const leadsByStatus = await Lead.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+        ]);
+        
         const leadsBySource = await Lead.aggregate([
             { $group: { _id: '$source', count: { $sum: 1 } } }
         ]);
         
+        // Leads created in last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const recentLeads = await Lead.countDocuments({
+            createdAt: { $gte: thirtyDaysAgo }
+        });
+        
+        // Conversion rate
+        const convertedLeads = await Lead.countDocuments({ status: 'converted' });
+        const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+        
+        const statusMap = {
+            new: 0,
+            contacted: 0,
+            qualified: 0,
+            converted: 0,
+            lost: 0
+        };
+        
+        leadsByStatus.forEach(item => {
+            statusMap[item._id] = item.count;
+        });
+        
         res.json({
-            total: totalLeads,
-            byStatus: {
-                new: newLeads,
-                contacted: contactedLeads,
-                qualified: qualifiedLeads,
-                converted: convertedLeads,
-                lost: lostLeads
-            },
-            bySource: leadsBySource
+            success: true,
+            data: {
+                total: totalLeads,
+                recent: recentLeads,
+                conversionRate: conversionRate.toFixed(1),
+                byStatus: statusMap,
+                bySource: leadsBySource
+            }
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 

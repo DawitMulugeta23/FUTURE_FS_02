@@ -4,11 +4,12 @@ const mongoose = require('mongoose');
 const noteSchema = new mongoose.Schema({
     content: {
         type: String,
-        required: true
+        required: [true, 'Please add note content']
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        required: true
     },
     createdAt: {
         type: Date,
@@ -19,19 +20,22 @@ const noteSchema = new mongoose.Schema({
 const leadSchema = new mongoose.Schema({
     firstName: {
         type: String,
-        required: true,
+        required: [true, 'Please add first name'],
         trim: true
     },
     lastName: {
         type: String,
-        required: true,
+        required: [true, 'Please add last name'],
         trim: true
     },
     email: {
         type: String,
-        required: true,
+        required: [true, 'Please add email'],
         lowercase: true,
-        trim: true
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please add a valid email'
+        ]
     },
     phone: {
         type: String,
@@ -43,7 +47,7 @@ const leadSchema = new mongoose.Schema({
     },
     source: {
         type: String,
-        enum: ['website', 'referral', 'social_media', 'email_campaign', 'other'],
+        enum: ['website', 'referral', 'social_media', 'email_campaign', 'advertisement', 'other'],
         default: 'website'
     },
     status: {
@@ -52,20 +56,23 @@ const leadSchema = new mongoose.Schema({
         default: 'new'
     },
     notes: [noteSchema],
-    convertedAt: Date,
-    createdAt: {
-        type: Date,
-        default: Date.now
+    convertedAt: {
+        type: Date
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     }
+}, {
+    timestamps: true
 });
 
-// Update the updatedAt field on save
+// Update convertedAt when status changes to converted
 leadSchema.pre('save', function(next) {
-    this.updatedAt = Date.now();
+    if (this.isModified('status') && this.status === 'converted' && !this.convertedAt) {
+        this.convertedAt = Date.now();
+    }
     next();
 });
 
