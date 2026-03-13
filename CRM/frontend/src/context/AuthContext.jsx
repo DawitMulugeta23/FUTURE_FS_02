@@ -1,66 +1,36 @@
-// src/context/AuthContext.js
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
-import authService from '../services/authService';
-import toast from 'react-hot-toast';
+// src/context/AuthContext.js - Updated to use Redux
+import { createContext, useContext } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { login as reduxLogin, logout as reduxLogout, register as reduxRegister } from '../store/slices/authSlice';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    // Load user on mount - using useCallback to memoize
-    const loadUser = useCallback(() => {
-        try {
-            const userData = authService.getCurrentUser();
-            if (userData) {
-                setUser(userData);
-            }
-        } catch (error) {
-            console.error('Error loading user:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        loadUser();
-    }, [loadUser]);
+    const dispatch = useDispatch();
+    const { user, loading } = useSelector(state => state.auth);
 
     const register = async (userData) => {
         try {
-            const response = await authService.register(userData);
-            if (response.success) {
-                setUser(response.data);
-                toast.success('Registration successful!');
-                return true;
-            }
+            const result = await dispatch(reduxRegister(userData)).unwrap();
+            return !!result;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Registration failed');
             return false;
         }
     };
 
     const login = async (email, password) => {
         try {
-            const response = await authService.login({ email, password });
-            if (response.success) {
-                setUser(response.data);
-                toast.success('Login successful!');
-                return true;
-            }
+            const result = await dispatch(reduxLogin({ email, password })).unwrap();
+            return !!result;
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login failed');
             return false;
         }
     };
 
     const logout = () => {
-        authService.logout();
-        setUser(null);
-        toast.success('Logged out successfully');
+        dispatch(reduxLogout());
     };
 
     const value = {
