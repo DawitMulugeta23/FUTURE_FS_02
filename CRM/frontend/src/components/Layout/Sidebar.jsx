@@ -1,10 +1,10 @@
-// src/components/Layout/Sidebar.jsx - Updated version
+// src/components/Layout/Sidebar.jsx
 import { FiHome, FiPieChart, FiSettings, FiUsers } from 'react-icons/fi';
 import { useSelector } from 'react-redux';
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
-    const sidebarOpen = useSelector(state => state.ui.sidebarOpen);
+    const sidebarOpen = useSelector(state => state.ui?.sidebarOpen ?? true);
 
     const menuItems = [
         { path: '/dashboard', name: 'Dashboard', icon: FiHome },

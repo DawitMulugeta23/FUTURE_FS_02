@@ -5,7 +5,10 @@ import { Provider, useDispatch, useSelector } from 'react-redux';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+import Analytics from './pages/Analytics';
 import Dashboard from './pages/Dashboard';
+import Leads from './pages/Leads';
+import Settings from './pages/Settings';
 import { setTheme } from './store/slices/uiSlice';
 import { store } from './store/store';
 
@@ -23,7 +26,6 @@ function AppContent() {
     const dispatch = useDispatch();
     const theme = useSelector(state => state.ui?.theme || 'light');
 
-    // Apply theme on mount and whenever theme changes
     useEffect(() => {
         const root = document.documentElement;
         if (theme === 'dark') {
@@ -35,10 +37,8 @@ function AppContent() {
             root.removeAttribute('data-theme');
             document.body.classList.remove('dark');
         }
-        console.log('Theme applied from AppContent:', theme);
     }, [theme]);
 
-    // Listen for system theme changes
     useEffect(() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         
@@ -71,7 +71,14 @@ function AppContent() {
                         <Dashboard />
                     </PrivateRoute>
                 } />
+                <Route path="/leads" element={
+                    <PrivateRoute>
+                        <Leads />
+                    </PrivateRoute>
+                } />
                 <Route path="/" element={<Navigate to="/dashboard" />} />
+                <Route path='/analytics' element={<PrivateRoute><Analytics/></PrivateRoute>}/>
+                <Route path='/settings' element={<PrivateRoute><Settings/></PrivateRoute>}/>
             </Routes>
             <Toaster 
                 position="top-right"
@@ -80,20 +87,6 @@ function AppContent() {
                     style: {
                         background: theme === 'dark' ? '#1f2937' : '#363636',
                         color: '#fff',
-                    },
-                    success: {
-                        duration: 3000,
-                        iconTheme: {
-                            primary: '#10b981',
-                            secondary: '#fff',
-                        },
-                    },
-                    error: {
-                        duration: 4000,
-                        iconTheme: {
-                            primary: '#ef4444',
-                            secondary: '#fff',
-                        },
                     },
                 }}
             />
