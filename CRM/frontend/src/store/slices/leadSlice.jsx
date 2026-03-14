@@ -1,4 +1,5 @@
-// src/store/slices/leadSlice.js
+// src/store/slices/leadSlice.js - Update the extraReducers
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import leadService from '../../services/leadService';
 import toast from 'react-hot-toast';
@@ -17,9 +18,11 @@ export const fetchLeads = createAsyncThunk(
 
 export const createLead = createAsyncThunk(
     'leads/createLead',
-    async (leadData, { rejectWithValue }) => {
+    async (leadData, { rejectWithValue, dispatch }) => {
         try {
             const response = await leadService.createLead(leadData);
+            // After creating lead, refresh analytics
+            dispatch(fetchAnalytics());
             return response.data;
         } catch (error) {
             const message = error.response?.data?.message || error.message || 'Failed to create lead';
@@ -31,9 +34,11 @@ export const createLead = createAsyncThunk(
 
 export const updateLead = createAsyncThunk(
     'leads/updateLead',
-    async ({ id, data }, { rejectWithValue }) => {
+    async ({ id, data }, { rejectWithValue, dispatch }) => {
         try {
             const response = await leadService.updateLead(id, data);
+            // After updating lead, refresh analytics
+            dispatch(fetchAnalytics());
             return response.data;
         } catch (error) {
             const message = error.response?.data?.message || error.message || 'Failed to update lead';
@@ -45,9 +50,11 @@ export const updateLead = createAsyncThunk(
 
 export const deleteLead = createAsyncThunk(
     'leads/deleteLead',
-    async (id, { rejectWithValue }) => {
+    async (id, { rejectWithValue, dispatch }) => {
         try {
             await leadService.deleteLead(id);
+            // After deleting lead, refresh analytics
+            dispatch(fetchAnalytics());
             return id;
         } catch (error) {
             const message = error.response?.data?.message || error.message || 'Failed to delete lead';
@@ -76,8 +83,10 @@ export const fetchAnalytics = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await leadService.getAnalytics();
+            console.log('Analytics response:', response);
             return response.data;
         } catch (error) {
+            console.error('Error fetching analytics:', error);
             return rejectWithValue(error.response?.data?.message || 'Failed to fetch analytics');
         }
     }
@@ -189,7 +198,6 @@ const leadSlice = createSlice({
                     if (state.selectedLead?._id === action.payload._id) {
                         state.selectedLead = action.payload;
                     }
-                    toast.success('Lead updated successfully');
                 }
             })
             .addCase(updateLead.rejected, (state, action) => {
@@ -207,7 +215,6 @@ const leadSlice = createSlice({
                 if (state.selectedLead?._id === action.payload) {
                     state.selectedLead = null;
                 }
-                toast.success('Lead deleted successfully');
             })
             .addCase(deleteLead.rejected, (state, action) => {
                 state.loading = false;
@@ -228,7 +235,6 @@ const leadSlice = createSlice({
                     if (state.selectedLead?._id === action.payload._id) {
                         state.selectedLead = action.payload;
                     }
-                    toast.success('Note added successfully');
                 }
             })
             .addCase(addNote.rejected, (state, action) => {
@@ -242,6 +248,7 @@ const leadSlice = createSlice({
             })
             .addCase(fetchAnalytics.fulfilled, (state, action) => {
                 state.loading = false;
+                console.log('Updating analytics with:', action.payload);
                 state.analytics = action.payload || {
                     total: 0,
                     recent: 0,
@@ -259,6 +266,7 @@ const leadSlice = createSlice({
             .addCase(fetchAnalytics.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
+                console.error('Analytics fetch rejected:', action.payload);
             });
     }
 });

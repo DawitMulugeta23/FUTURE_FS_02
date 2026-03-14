@@ -340,17 +340,22 @@ const getAnalytics = async (req, res) => {
         // Get analytics only for current user's leads
         const userId = req.user.id;
         
+        console.log('Fetching analytics for user:', userId);
+        
         const totalLeads = await Lead.countDocuments({ createdBy: userId });
+        console.log('Total leads:', totalLeads);
         
         const leadsByStatus = await Lead.aggregate([
             { $match: { createdBy: userId } },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
+        console.log('Leads by status:', leadsByStatus);
         
         const leadsBySource = await Lead.aggregate([
             { $match: { createdBy: userId } },
             { $group: { _id: '$source', count: { $sum: 1 } } }
         ]);
+        console.log('Leads by source:', leadsBySource);
         
         // Leads created in last 30 days
         const thirtyDaysAgo = new Date();
@@ -360,6 +365,7 @@ const getAnalytics = async (req, res) => {
             createdBy: userId,
             createdAt: { $gte: thirtyDaysAgo }
         });
+        console.log('Recent leads (30 days):', recentLeads);
         
         // Conversion rate
         const convertedLeads = await Lead.countDocuments({ 
@@ -368,6 +374,7 @@ const getAnalytics = async (req, res) => {
         });
         const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
         
+        // Create status map with all statuses
         const statusMap = {
             new: 0,
             contacted: 0,
@@ -376,19 +383,26 @@ const getAnalytics = async (req, res) => {
             lost: 0
         };
         
+        // Update with actual counts
         leadsByStatus.forEach(item => {
-            statusMap[item._id] = item.count;
+            if (item._id && statusMap.hasOwnProperty(item._id)) {
+                statusMap[item._id] = item.count;
+            }
         });
+        
+        const responseData = {
+            total: totalLeads,
+            recent: recentLeads,
+            conversionRate: conversionRate.toFixed(1),
+            byStatus: statusMap,
+            bySource: leadsBySource
+        };
+        
+        console.log('Sending analytics response:', responseData);
         
         res.status(200).json({
             success: true,
-            data: {
-                total: totalLeads,
-                recent: recentLeads,
-                conversionRate: conversionRate.toFixed(1),
-                byStatus: statusMap,
-                bySource: leadsBySource
-            }
+            data: responseData
         });
     } catch (error) {
         console.error('Error in getAnalytics:', error);

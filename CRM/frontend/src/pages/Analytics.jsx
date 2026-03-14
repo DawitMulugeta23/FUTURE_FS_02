@@ -1,34 +1,35 @@
-// src/pages/Analytics.jsx
-import {
-    ArcElement,
-    BarElement,
-    CategoryScale,
-    Chart as ChartJS,
-    Legend,
-    LinearScale,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip
-} from 'chart.js';
-import { useEffect, useState } from 'react';
-import { Bar, Pie } from 'react-chartjs-2';
-import {
-    FiActivity,
-    FiBarChart2,
-    FiCalendar,
-    FiClock,
-    FiDownload,
-    FiPieChart,
-    FiRefreshCw,
-    FiTrendingUp,
-    FiUserCheck,
-    FiUsers
-} from 'react-icons/fi';
+// src/pages/Analytics.jsx - Update useEffect to refresh periodically
+
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Navbar from '../components/Layout/Navbar';
 import Sidebar from '../components/Layout/Sidebar';
 import { fetchAnalytics } from '../store/slices/leadSlice';
+import { 
+    FiUsers, 
+    FiTrendingUp, 
+    FiUserCheck, 
+    FiClock, 
+    FiCalendar,
+    FiDownload,
+    FiRefreshCw,
+    FiPieChart,
+    FiBarChart2,
+    FiActivity
+} from 'react-icons/fi';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement,
+    PointElement,
+    LineElement
+} from 'chart.js';
+import { Bar, Pie } from 'react-chartjs-2';
 
 // Register ChartJS components
 ChartJS.register(
@@ -48,13 +49,28 @@ const Analytics = () => {
     const { analytics, loading } = useSelector(state => state.leads);
     const [timeRange, setTimeRange] = useState('30days');
     const [chartType, setChartType] = useState('bar');
+    const [lastUpdated, setLastUpdated] = useState(new Date());
 
+    // Fetch analytics on mount and set up auto-refresh
     useEffect(() => {
-        dispatch(fetchAnalytics());
+        fetchAnalyticsData();
+        
+        // Set up auto-refresh every 30 seconds
+        const interval = setInterval(() => {
+            fetchAnalyticsData();
+        }, 30000);
+        
+        return () => clearInterval(interval);
     }, [dispatch]);
 
+    const fetchAnalyticsData = () => {
+        dispatch(fetchAnalytics()).then(() => {
+            setLastUpdated(new Date());
+        });
+    };
+
     const handleRefresh = () => {
-        dispatch(fetchAnalytics());
+        fetchAnalyticsData();
     };
 
     const handleExport = () => {
@@ -98,7 +114,7 @@ const Analytics = () => {
                 <div className={`${bgColor} p-3 rounded-lg`}>
                     <Icon className={`h-6 w-6 ${color}`} />
                 </div>
-                {trend && (
+                {trend !== undefined && (
                     <span className={`text-sm font-medium ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {trend > 0 ? '+' : ''}{trend}%
                     </span>
@@ -113,7 +129,7 @@ const Analytics = () => {
         </div>
     );
 
-    if (loading) {
+    if (loading && !analytics?.total) {
         return (
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 <Navbar />
@@ -139,6 +155,7 @@ const Analytics = () => {
         );
     }
 
+    // Prepare chart data with null checks
     const statusData = {
         labels: ['New', 'Contacted', 'Qualified', 'Converted', 'Lost'],
         datasets: [
@@ -171,7 +188,7 @@ const Analytics = () => {
     };
 
     const sourceData = {
-        labels: analytics?.bySource?.map(s => s._id.replace('_', ' ')) || [],
+        labels: analytics?.bySource?.map(s => s._id?.replace('_', ' ') || 'Unknown') || [],
         datasets: [
             {
                 data: analytics?.bySource?.map(s => s.count) || [],
@@ -255,6 +272,9 @@ const Analytics = () => {
                                 <p className="text-gray-600 dark:text-gray-400 mt-2">
                                     Track your lead performance and conversion metrics
                                 </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    Last updated: {lastUpdated.toLocaleTimeString()}
+                                </p>
                             </div>
                             <div className="flex space-x-3">
                                 <select
@@ -276,7 +296,7 @@ const Analytics = () => {
                                              rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 
                                              transition-colors flex items-center space-x-2"
                                 >
-                                    <FiRefreshCw className="h-4 w-4" />
+                                    <FiRefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                     <span>Refresh</span>
                                 </button>
                                 <button
@@ -298,7 +318,6 @@ const Analytics = () => {
                                 icon={FiUsers}
                                 color="text-blue-600"
                                 bgColor="bg-blue-100 dark:bg-blue-900/20"
-                                trend={12}
                             />
                             <StatCard
                                 title="New Leads (30d)"
@@ -306,7 +325,6 @@ const Analytics = () => {
                                 icon={FiClock}
                                 color="text-yellow-600"
                                 bgColor="bg-yellow-100 dark:bg-yellow-900/20"
-                                trend={8}
                             />
                             <StatCard
                                 title="Converted"
@@ -314,7 +332,6 @@ const Analytics = () => {
                                 icon={FiUserCheck}
                                 color="text-green-600"
                                 bgColor="bg-green-100 dark:bg-green-900/20"
-                                trend={15}
                             />
                             <StatCard
                                 title="Conversion Rate"
@@ -322,7 +339,6 @@ const Analytics = () => {
                                 icon={FiTrendingUp}
                                 color="text-purple-600"
                                 bgColor="bg-purple-100 dark:bg-purple-900/20"
-                                trend={5}
                             />
                         </div>
 
@@ -359,10 +375,18 @@ const Analytics = () => {
                                     </div>
                                 </div>
                                 <div className="h-80">
-                                    {chartType === 'bar' ? (
-                                        <Bar data={statusData} options={chartOptions} />
+                                    {analytics?.total > 0 ? (
+                                        chartType === 'bar' ? (
+                                            <Bar data={statusData} options={chartOptions} />
+                                        ) : (
+                                            <Pie data={statusData} options={pieOptions} />
+                                        )
                                     ) : (
-                                        <Pie data={statusData} options={pieOptions} />
+                                        <div className="h-full flex items-center justify-center">
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                No data available. Add some leads to see analytics.
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -379,7 +403,7 @@ const Analytics = () => {
                                     ) : (
                                         <div className="h-full flex items-center justify-center">
                                             <p className="text-gray-500 dark:text-gray-400">
-                                                No source data available
+                                                No source data available. Add leads with different sources.
                                             </p>
                                         </div>
                                     )}
@@ -399,7 +423,7 @@ const Analytics = () => {
                                     <thead>
                                         <tr className="border-b dark:border-gray-700">
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Metric
+                                                Status
                                             </th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                                                 Count
@@ -407,73 +431,49 @@ const Analytics = () => {
                                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                                                 Percentage
                                             </th>
-                                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                Trend
-                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">Total Leads</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.total || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">100%</td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-green-600">↑ 12%</span>
-                                            </td>
-                                        </tr>
-                                        <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">New Leads</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.byStatus?.new || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                                {analytics?.total ? ((analytics.byStatus.new / analytics.total) * 100).toFixed(1) : 0}%
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-green-600">↑ 8%</span>
-                                            </td>
-                                        </tr>
-                                        <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">Contacted</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.byStatus?.contacted || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                                {analytics?.total ? ((analytics.byStatus.contacted / analytics.total) * 100).toFixed(1) : 0}%
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-yellow-600">→ 0%</span>
-                                            </td>
-                                        </tr>
-                                        <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">Qualified</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.byStatus?.qualified || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                                {analytics?.total ? ((analytics.byStatus.qualified / analytics.total) * 100).toFixed(1) : 0}%
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-green-600">↑ 5%</span>
-                                            </td>
-                                        </tr>
-                                        <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">Converted</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.byStatus?.converted || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                                {analytics?.total ? ((analytics.byStatus.converted / analytics.total) * 100).toFixed(1) : 0}%
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-green-600">↑ 15%</span>
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white">Lost</td>
-                                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{analytics?.byStatus?.lost || 0}</td>
-                                            <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                                                {analytics?.total ? ((analytics.byStatus.lost / analytics.total) * 100).toFixed(1) : 0}%
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className="text-red-600">↓ 3%</span>
-                                            </td>
-                                        </tr>
+                                        {Object.entries(analytics?.byStatus || {}).map(([status, count]) => (
+                                            <tr key={status} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                <td className="py-3 px-4 text-gray-900 dark:text-white capitalize">
+                                                    {status}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">
+                                                    {count}
+                                                </td>
+                                                <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                                                    {analytics?.total ? ((count / analytics.total) * 100).toFixed(1) : 0}%
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Source Breakdown */}
+                            {analytics?.bySource?.length > 0 && (
+                                <div className="mt-8">
+                                    <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                                        Source Breakdown
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {analytics.bySource.map((source) => (
+                                            <div key={source._id} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                                                    {source._id?.replace('_', ' ') || 'Unknown'}
+                                                </p>
+                                                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                                                    {source.count}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-500">
+                                                    {analytics.total ? ((source.count / analytics.total) * 100).toFixed(1) : 0}% of total
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </main>

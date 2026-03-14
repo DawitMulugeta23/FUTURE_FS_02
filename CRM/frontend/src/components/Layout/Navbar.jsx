@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { FiLogOut, FiUser, FiBarChart2 } from 'react-icons/fi';
 import ThemeToggle from '../UI/ThemeToggle';
+import VoiceSearch from '../Search/VoiceSearch';
 
 const Navbar = () => {
     const dispatch = useDispatch();
