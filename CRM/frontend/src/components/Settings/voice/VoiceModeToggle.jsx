@@ -1,7 +1,7 @@
 // src/components/Settings/voice/VoiceModeToggle.jsx
 import { FiVolume2, FiVolumeX } from "react-icons/fi";
 
-const VoiceModeToggle = ({ voiceContext, onVoiceSettingChange }) => {
+const VoiceModeToggle = ({ voiceContext }) => {
   const { voiceMode, isListening, toggleVoiceMode } = voiceContext;
 
   return (

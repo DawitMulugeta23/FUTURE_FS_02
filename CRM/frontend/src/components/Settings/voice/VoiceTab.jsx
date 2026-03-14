@@ -46,13 +46,11 @@ const VoiceTab = ({
         onChange={onVoiceSettingChange}
       />
 
-      {/* Hover-to-Speak Settings */}
       <HoverSpeakSettings
         settings={voiceSettingsLocal}
         onChange={onVoiceSettingChange}
       />
 
-      {/* Speech Queue Settings */}
       <SpeechQueueSettings
         settings={voiceSettingsLocal}
         onChange={onVoiceSettingChange}
