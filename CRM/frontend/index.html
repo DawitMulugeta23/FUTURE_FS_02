@@ -1,39 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CRM System</title>
+    <title>CRM System - Lead Management</title>
     <script>
       // This runs before React loads to prevent flash of wrong theme
-      (function() {
+      (function () {
         try {
-          const savedTheme = localStorage.getItem('theme');
-          const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          
-          let theme = 'light';
-          if (savedTheme === 'dark' || savedTheme === 'light') {
-            theme = savedTheme;
-          } else if (systemPrefersDark) {
-            theme = 'dark';
+          if (typeof document !== "undefined") {
+            const savedTheme = localStorage.getItem("theme");
+            const systemPrefersDark = window.matchMedia(
+              "(prefers-color-scheme: dark)",
+            ).matches;
+
+            let theme = "light";
+            if (savedTheme === "dark" || savedTheme === "light") {
+              theme = savedTheme;
+            } else if (systemPrefersDark) {
+              theme = "dark";
+            }
+
+            const root = document.documentElement;
+            if (theme === "dark") {
+              root.classList.add("dark");
+              root.setAttribute("data-theme", "dark");
+            } else {
+              root.classList.remove("dark");
+              root.removeAttribute("data-theme");
+            }
           }
-          
-          const root = document.documentElement;
-          if (theme === 'dark') {
-            root.classList.add('dark');
-            root.setAttribute('data-theme', 'dark');
-          } else {
-            root.classList.remove('dark');
-            root.removeAttribute('data-theme');
-          }
-          
-          // Also set on body
-          document.body.className = theme === 'dark' ? 'dark' : '';
-          
-          console.log('Initial theme set to:', theme);
         } catch (e) {
-          console.error('Error applying theme:', e);
+          console.error("Error applying theme:", e);
         }
       })();
     </script>
