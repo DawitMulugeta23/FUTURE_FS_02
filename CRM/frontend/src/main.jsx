@@ -8,11 +8,17 @@ import { store } from "./store/store";
 
 // Ensure document is available
 if (typeof document !== "undefined") {
-  ReactDOM.createRoot(document.getElementById("root")).render(
-    <React.StrictMode>
-      <Provider store={store}>
-        <App />
-      </Provider>
-    </React.StrictMode>,
-  );
+  const rootElement = document.getElementById("root");
+
+  if (rootElement) {
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <Provider store={store}>
+          <App />
+        </Provider>
+      </React.StrictMode>,
+    );
+  } else {
+    console.error("Root element not found");
+  }
 }
