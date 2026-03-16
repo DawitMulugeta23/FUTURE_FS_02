@@ -7,12 +7,6 @@ import Sidebar from "../components/Layout/Sidebar";
 import SettingsHeader from "../components/Settings/SettingsHeader";
 import SettingsLayout from "../components/Settings/SettingsLayout";
 import SettingsTabs from "../components/Settings/SettingsTabs";
-import AppearanceTab from "../components/Settings/appearance/AppearanceTab";
-import DataTab from "../components/Settings/data/DataTab";
-import NotificationsTab from "../components/Settings/notifications/NotificationsTab";
-import PrivacyTab from "../components/Settings/privacy/PrivacyTab";
-import ProfileTab from "../components/Settings/profile/ProfileTab";
-import VoiceTab from "../components/Settings/voice/VoiceTab";
 import { useVoice } from "../context/VoiceContext";
 
 const Settings = () => {

@@ -1,0 +1,20 @@
+[33m92baf4e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m setting file
+[33me957968[m voice related things under update
+[33ma95c511[m upto data
+[33m54c79a3[m setting break down into multiple component
+[33mddeeee4[m voice related essue fixed
+[33m62e694a[m i add the drop down menu
+[33m317162b[m voice related file updated
+[33mdc39dc3[m voce search, voice note, activity ... feature added
+[33m1a547e5[m analytics and setting page added
+[33mf77ee25[m dark mode functionality added
+[33m687f457[m lead create functionality finished
+[33m3a70808[m login/register related essue fixed
+[33m760bf8f[m themeToggle feature, validation and error fixed
+[33mba2e1e9[m Merge branch 'main' of https://github.com/DawitMulugeta23/FUTURE_FS_02
+[33m4780d80[m rigister file updated
+[33m6f6d04f[m setup file and folder stracture
+[33md21ed61[m Stop tracking .env and node_modules files
+[33mcb884b1[m Delete CRM/backend/node_modules directory
+[33m7a791d6[m Delete CRM/backend/.env
+[33mfc6c422[m crm
