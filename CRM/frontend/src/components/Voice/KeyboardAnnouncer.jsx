@@ -27,7 +27,7 @@ const VoiceLogin = () => {
     startListening,
     stopListening,
     toggleVoiceMode,
-    screenReaderMode,
+    screenReaderMode
   } = useVoice();
 
   const [email, setEmail] = useState("");
@@ -41,17 +41,14 @@ const VoiceLogin = () => {
   useEffect(() => {
     const enabled = checkAndEnableForBlind();
     setAccessibilityEnabled(enabled);
-
+    
     if (enabled && !voiceMode) {
       // Small delay to ensure voice context is ready
       setTimeout(() => {
         toggleVoiceMode();
-        speak(
-          "Welcome to CRM system. Voice mode activated for blind users. Please say your email address to log in.",
-          {
-            priority: "high",
-          },
-        );
+        speak("Welcome to CRM system. Voice mode activated for blind users. Please say your email address to log in.", {
+          priority: "high"
+        });
       }, 1500);
     }
   }, []);
@@ -62,11 +59,7 @@ const VoiceLogin = () => {
       const lowerTranscript = transcript.toLowerCase();
 
       // Extract email from voice
-      if (
-        lowerTranscript.includes("email") ||
-        lowerTranscript.includes("at") ||
-        lowerTranscript.includes("dot")
-      ) {
+      if (lowerTranscript.includes("email") || lowerTranscript.includes("at") || lowerTranscript.includes("dot")) {
         // Try to extract email pattern
         const emailMatch = transcript.match(/\b[\w\.-]+@[\w\.-]+\.\w+\b/);
         if (emailMatch) {
@@ -76,20 +69,18 @@ const VoiceLogin = () => {
         } else {
           // Handle spoken email like "john at gmail dot com"
           const spokenEmail = transcript
-            .replace(/\s+at\s+/g, "@")
-            .replace(/\s+dot\s+/g, ".")
-            .replace(/\s+/g, "")
-            .replace(/email/i, "")
+            .replace(/\s+at\s+/g, '@')
+            .replace(/\s+dot\s+/g, '.')
+            .replace(/\s+/g, '')
+            .replace(/email/i, '')
             .trim();
-
-          if (spokenEmail.includes("@") && spokenEmail.includes(".")) {
+          
+          if (spokenEmail.includes('@') && spokenEmail.includes('.')) {
             setVoiceEmail(spokenEmail);
             setEmail(spokenEmail);
             speak(`Email set to ${spokenEmail}`);
           } else {
-            speak(
-              "I didn't catch the email. Please speak clearly, like: email john at gmail dot com",
-            );
+            speak("I didn't catch the email. Please speak clearly, like: email john at gmail dot com");
           }
         }
       }
@@ -114,18 +105,14 @@ const VoiceLogin = () => {
         if (email && password) {
           handleVoiceLogin();
         } else {
-          speak(
-            "Please provide email and password. Say your email address, then say your password.",
-          );
+          speak("Please provide email and password. Say your email address, then say your password.");
         }
       }
 
       // Help command
       if (lowerTranscript.includes("help")) {
         setShowVoiceHelp(true);
-        speak(
-          "Say your email address, then your password, then say login. For example: email john at gmail dot com, then password, then login.",
-        );
+        speak("Say your email address, then your password, then say login. For example: email john at gmail dot com, then password, then login.");
         setTimeout(() => setShowVoiceHelp(false), 8000);
       }
     }
@@ -150,17 +137,13 @@ const VoiceLogin = () => {
       const result = await dispatch(login({ email, password })).unwrap();
       if (result) {
         toast.success("Login successful!");
-        speak(
-          "Login successful! Welcome to CRM. You are now in screen reader mode. Press Tab to navigate.",
-        );
+        speak("Login successful! Welcome to CRM. You are now in screen reader mode. Press Tab to navigate.");
         navigate("/dashboard");
       }
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error || "Login failed");
-      speak(
-        "Login failed. Please try again. If you are a blind user, ensure you have spoken your email and password correctly.",
-      );
+      speak("Login failed. Please try again. If you are a blind user, ensure you have spoken your email and password correctly.");
     } finally {
       setLoading(false);
     }
@@ -171,9 +154,7 @@ const VoiceLogin = () => {
       stopListening();
     } else {
       startListening();
-      speak(
-        "Please say your email address. For example: email john at gmail dot com",
-      );
+      speak("Please say your email address. For example: email john at gmail dot com");
     }
   };
 
@@ -182,12 +163,8 @@ const VoiceLogin = () => {
       {/* Accessibility Banner */}
       {accessibilityEnabled && (
         <div className="fixed top-0 left-0 right-0 bg-green-600 text-white py-3 px-4 z-50 text-center">
-          <p className="font-bold">
-            ♿ Accessibility Mode Enabled for Blind Users
-          </p>
-          <p className="text-sm">
-            Voice commands are active. Say "help" for instructions.
-          </p>
+          <p className="font-bold">♿ Accessibility Mode Enabled for Blind Users</p>
+          <p className="text-sm">Voice commands are active. Say "help" for instructions.</p>
         </div>
       )}
 
@@ -202,8 +179,7 @@ const VoiceLogin = () => {
           >
             <FiVolume2 className="mr-2" />
             <span>
-              Screen Reader Mode Active -{" "}
-              {isListening ? "Listening..." : "Click mic to speak"}
+              Screen Reader Mode Active - {isListening ? "Listening..." : "Click mic to speak"}
             </span>
             {screenReaderMode && (
               <span className="ml-2 bg-yellow-400 text-black px-2 py-0.5 rounded text-xs">
@@ -239,19 +215,11 @@ const VoiceLogin = () => {
                 🎤 Voice Commands for Blind Users:
               </p>
               <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-2">
-                <li>
-                  • "email [your email]" - e.g., "email john at gmail dot com"
-                </li>
+                <li>• "email [your email]" - e.g., "email john at gmail dot com"</li>
                 <li>• "password [your password]"</li>
                 <li>• "login" or "sign in"</li>
                 <li>• "help" - show this menu</li>
-                <li>
-                  • Press{" "}
-                  <kbd className="bg-gray-200 dark:bg-gray-600 px-1 rounded">
-                    Tab
-                  </kbd>{" "}
-                  to navigate between elements
-                </li>
+                <li>• Press <kbd className="bg-gray-200 dark:bg-gray-600 px-1 rounded">Tab</kbd> to navigate between elements</li>
               </ul>
             </motion.div>
           )}
@@ -272,9 +240,7 @@ const VoiceLogin = () => {
                     ? "bg-red-500 text-white animate-pulse"
                     : "bg-primary-600 text-white hover:bg-primary-700"
                 }`}
-                aria-label={
-                  isListening ? "Stop listening" : "Start voice input"
-                }
+                aria-label={isListening ? "Stop listening" : "Start voice input"}
               >
                 <FiMic className="h-4 w-4" />
               </motion.button>
@@ -421,15 +387,11 @@ const VoiceLogin = () => {
               </Link>
             </p>
           </div>
-
+          
           {/* Accessibility quick tip */}
           {voiceMode && (
             <div className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-              💡 Tip: Press{" "}
-              <kbd className="bg-gray-200 dark:bg-gray-700 px-1 rounded">
-                Tab
-              </kbd>{" "}
-              to move between elements (they will be read aloud)
+              💡 Tip: Press <kbd className="bg-gray-200 dark:bg-gray-700 px-1 rounded">Tab</kbd> to move between elements (they will be read aloud)
             </div>
           )}
         </form>

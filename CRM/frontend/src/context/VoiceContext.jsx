@@ -1,14 +1,12 @@
-// src/context/VoiceContext.jsx (updated with speech queue and priority)
+// src/context/VoiceContext.jsx (updated with screen reader support)
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setTheme } from '../store/slices/uiSlice';
+import { setTheme, setFontSize, setHighContrast } from '../store/slices/uiSlice';
 
-// Create context
 const VoiceContext = createContext();
 
-// Custom hook to use voice context
 export const useVoice = () => {
     const context = useContext(VoiceContext);
     if (!context) {
@@ -21,7 +19,13 @@ export const VoiceProvider = ({ children }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     
-    const [voiceMode, setVoiceMode] = useState(false);
+    const [voiceMode, setVoiceMode] = useState(() => {
+        // Check if user has previously enabled voice mode
+        return localStorage.getItem('voiceMode') === 'true';
+    });
+    const [screenReaderMode, setScreenReaderMode] = useState(() => {
+        return localStorage.getItem('screenReaderMode') === 'true';
+    });
     const [isListening, setIsListening] = useState(false);
     const [voiceSupported, setVoiceSupported] = useState(true);
     const [recognition, setRecognition] = useState(null);
@@ -31,29 +35,27 @@ export const VoiceProvider = ({ children }) => {
     const [lastSpoken, setLastSpoken] = useState('');
     const [speechQueue, setSpeechQueue] = useState([]);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [hoverDescription, setHoverDescription] = useState('');
+    const [currentlyFocusedElement, setCurrentlyFocusedElement] = useState(null);
     
     const speakingRef = useRef(false);
     const queueRef = useRef([]);
     const currentUtteranceRef = useRef(null);
+    const lastSpokenTimeRef = useRef(0);
+    const focusListenerRef = useRef(null);
 
     const [voiceSettings, setVoiceSettings] = useState({
-        wakeWord: 'hey crm',
-        language: 'en-US',
-        speed: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        autoListen: true,
-        voiceFeedback: true,
-        continuousListening: false,
-        hoverSpeak: true,
-        hoverDelay: 500,
-        speakDescriptions: true,
-        speakLabels: true,
-        speakPlaceholders: true,
-        speakErrors: true,
-        speakSuccess: true,
-        speakNavigation: true,
+        wakeWord: localStorage.getItem('wakeWord') || 'hey crm',
+        language: localStorage.getItem('voiceLanguage') || 'en-US',
+        speed: parseFloat(localStorage.getItem('voiceSpeed')) || 1.0,
+        pitch: parseFloat(localStorage.getItem('voicePitch')) || 1.0,
+        volume: parseFloat(localStorage.getItem('voiceVolume')) || 1.0,
+        autoListen: localStorage.getItem('autoListen') === 'true' || true,
+        voiceFeedback: localStorage.getItem('voiceFeedback') === 'true' || true,
+        continuousListening: localStorage.getItem('continuousListening') === 'true' || false,
+        screenReaderMode: localStorage.getItem('screenReaderMode') === 'true' || false,
+        readFocusChanges: localStorage.getItem('readFocusChanges') === 'true' || true,
+        readPageChanges: localStorage.getItem('readPageChanges') === 'true' || true,
+        readAlerts: localStorage.getItem('readAlerts') === 'true' || true,
         priorityLevels: {
             high: 1,
             normal: 2,
@@ -106,9 +108,21 @@ export const VoiceProvider = ({ children }) => {
                 };
 
                 setRecognition(recognitionInstance);
+                
+                // Auto-start if voice mode was enabled
+                if (voiceMode) {
+                    setTimeout(() => {
+                        startListening();
+                    }, 1000);
+                }
             } else {
                 setVoiceSupported(false);
             }
+        }
+
+        // Set up focus tracking for screen reader mode
+        if (voiceSettings.screenReaderMode) {
+            setupFocusTracking();
         }
 
         return () => {
@@ -118,8 +132,81 @@ export const VoiceProvider = ({ children }) => {
             if (synthesis) {
                 synthesis.cancel();
             }
+            if (focusListenerRef.current) {
+                document.removeEventListener('focusin', focusListenerRef.current);
+            }
         };
     }, []);
+
+    // Setup focus tracking for screen reader mode
+    const setupFocusTracking = () => {
+        focusListenerRef.current = (e) => {
+            const element = e.target;
+            if (element !== currentlyFocusedElement && voiceSettings.readFocusChanges) {
+                setCurrentlyFocusedElement(element);
+                
+                // Get element description
+                let description = getElementDescription(element);
+                if (description) {
+                    speak(description, { priority: 'high', category: 'focus' });
+                }
+            }
+        };
+        
+        document.addEventListener('focusin', focusListenerRef.current);
+    };
+
+    // Get description for any element
+    const getElementDescription = (element) => {
+        // Check for data-voice-description attribute first
+        if (element.dataset.voiceDescription) {
+            return element.dataset.voiceDescription;
+        }
+        
+        // Check for aria-label
+        if (element.getAttribute('aria-label')) {
+            return element.getAttribute('aria-label');
+        }
+        
+        // Check for alt text on images
+        if (element.tagName === 'IMG' && element.alt) {
+            return element.alt;
+        }
+        
+        // Get text content for buttons and links
+        if (element.tagName === 'BUTTON' || element.tagName === 'A') {
+            const text = element.textContent || element.innerText;
+            if (text && text.trim()) {
+                return `Button: ${text.trim()}`;
+            }
+        }
+        
+        // Get placeholder for inputs
+        if (element.tagName === 'INPUT') {
+            const type = element.type || 'text';
+            const placeholder = element.placeholder;
+            if (placeholder) {
+                return `${type} input field: ${placeholder}`;
+            }
+            return `${type} input field`;
+        }
+        
+        // Get heading text
+        if (element.tagName.match(/^H[1-6]$/)) {
+            const text = element.textContent || element.innerText;
+            if (text && text.trim()) {
+                return `Heading: ${text.trim()}`;
+            }
+        }
+        
+        // For any other element, get its text content
+        const text = element.textContent || element.innerText;
+        if (text && text.trim() && text.trim().length < 100) {
+            return text.trim();
+        }
+        
+        return null;
+    };
 
     // Process speech queue
     useEffect(() => {
@@ -147,8 +234,19 @@ export const VoiceProvider = ({ children }) => {
             utterance.pitch = voiceSettings.pitch;
             utterance.volume = voiceSettings.volume;
 
+            // Get available voices and try to set a good one
+            const voices = synthesis.getVoices();
+            if (voices.length > 0) {
+                // Prefer female voice for better clarity
+                const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha'));
+                if (preferredVoice) {
+                    utterance.voice = preferredVoice;
+                }
+            }
+
             utterance.onstart = () => {
                 setLastSpoken(text);
+                lastSpokenTimeRef.current = Date.now();
                 if (onStart) onStart();
             };
 
@@ -192,8 +290,8 @@ export const VoiceProvider = ({ children }) => {
             interrupt = false
         } = options;
 
-        // Don't repeat the same text too quickly
-        if (text === lastSpoken && Date.now() - lastSpokenTime < 2000) {
+        // Don't repeat the same text too quickly (within 1 second)
+        if (text === lastSpoken && Date.now() - lastSpokenTimeRef.current < 1000) {
             return;
         }
 
@@ -224,7 +322,7 @@ export const VoiceProvider = ({ children }) => {
         queueRef.current = newQueue;
         setSpeechQueue(newQueue);
         setLastSpoken(text);
-        setLastSpokenTime(Date.now());
+        lastSpokenTimeRef.current = Date.now();
 
         // If interrupting, clear current speech
         if (interrupt && currentUtteranceRef.current) {
@@ -232,22 +330,62 @@ export const VoiceProvider = ({ children }) => {
         }
     }, [synthesis, voiceSettings]);
 
+    // Announce page change
+    const announcePageChange = useCallback((pageName) => {
+        if (voiceSettings.readPageChanges) {
+            speak(`Navigated to ${pageName} page`, { priority: 'high', category: 'navigation' });
+        }
+    }, [speak, voiceSettings.readPageChanges]);
+
+    // Announce alert/notification
+    const announceAlert = useCallback((message, type = 'info') => {
+        if (voiceSettings.readAlerts) {
+            speak(`${type}: ${message}`, { priority: 'high', category: 'alert' });
+        }
+    }, [speak, voiceSettings.readAlerts]);
+
     // Activate voice mode
     const activateVoiceMode = useCallback(() => {
         setVoiceMode(true);
+        setScreenReaderMode(true);
+        localStorage.setItem('voiceMode', 'true');
+        localStorage.setItem('screenReaderMode', 'true');
         setWakeWordDetected(true);
-        speak('Voice mode activated. Hover over any element to hear its description.', {
+        
+        // Update settings
+        setVoiceSettings(prev => ({
+            ...prev,
+            screenReaderMode: true
+        }));
+        
+        speak('Voice mode activated. Screen reader mode enabled. I will read everything as you navigate. Press tab to move between elements.', {
             priority: 'high',
             category: 'system'
         });
-        toast.success('Voice mode activated! Hover to hear descriptions.', { icon: '🎤' });
+        
+        toast.success('Screen reader mode activated!', { icon: '🎤', duration: 3000 });
         
         setTimeout(() => setWakeWordDetected(false), 3000);
-    }, [speak]);
+        
+        // Start listening
+        startListening();
+        
+        // Setup focus tracking
+        setupFocusTracking();
+    }, [speak, startListening]);
 
     // Deactivate voice mode
     const deactivateVoiceMode = useCallback(() => {
         setVoiceMode(false);
+        setScreenReaderMode(false);
+        localStorage.setItem('voiceMode', 'false');
+        localStorage.setItem('screenReaderMode', 'false');
+        
+        setVoiceSettings(prev => ({
+            ...prev,
+            screenReaderMode: false
+        }));
+        
         stopListening();
         
         // Clear speech queue
@@ -257,9 +395,14 @@ export const VoiceProvider = ({ children }) => {
             synthesis?.cancel();
         }
         
-        speak('Voice mode deactivated.', { priority: 'high' });
-        toast.success('Voice mode deactivated');
-    }, [speak, synthesis]);
+        // Remove focus tracking
+        if (focusListenerRef.current) {
+            document.removeEventListener('focusin', focusListenerRef.current);
+        }
+        
+        speak('Screen reader mode deactivated.', { priority: 'high' });
+        toast.success('Screen reader mode deactivated');
+    }, [speak, synthesis, stopListening]);
 
     // Start listening
     const startListening = useCallback(() => {
@@ -296,9 +439,9 @@ export const VoiceProvider = ({ children }) => {
         if (voiceMode) {
             deactivateVoiceMode();
         } else {
-            startListening();
+            activateVoiceMode();
         }
-    }, [voiceMode, deactivateVoiceMode, startListening]);
+    }, [voiceMode, activateVoiceMode, deactivateVoiceMode]);
 
     // Process voice commands
     const processVoiceCommand = useCallback((command) => {
@@ -307,19 +450,19 @@ export const VoiceProvider = ({ children }) => {
         // Navigation commands
         if (command.includes('go to dashboard') || command.includes('open dashboard')) {
             navigate('/dashboard');
-            speak('Navigating to dashboard', { priority: 'high' });
+            announcePageChange('dashboard');
         }
         else if (command.includes('go to leads') || command.includes('open leads')) {
             navigate('/leads');
-            speak('Opening leads page', { priority: 'high' });
+            announcePageChange('leads');
         }
         else if (command.includes('go to analytics') || command.includes('open analytics')) {
             navigate('/analytics');
-            speak('Opening analytics dashboard', { priority: 'high' });
+            announcePageChange('analytics');
         }
         else if (command.includes('go to settings') || command.includes('open settings')) {
             navigate('/settings');
-            speak('Opening settings', { priority: 'high' });
+            announcePageChange('settings');
         }
         
         // Theme commands
@@ -332,12 +475,60 @@ export const VoiceProvider = ({ children }) => {
             speak('Switching to light mode', { priority: 'high' });
         }
         
+        // Font size commands
+        else if (command.includes('increase font size') || command.includes('larger text')) {
+            dispatch(setFontSize('large'));
+            speak('Font size increased', { priority: 'high' });
+        }
+        else if (command.includes('decrease font size') || command.includes('smaller text')) {
+            dispatch(setFontSize('small'));
+            speak('Font size decreased', { priority: 'high' });
+        }
+        else if (command.includes('normal font size') || command.includes('reset font size')) {
+            dispatch(setFontSize('medium'));
+            speak('Font size reset to normal', { priority: 'high' });
+        }
+        
+        // High contrast commands
+        else if (command.includes('high contrast on') || command.includes('enable high contrast')) {
+            dispatch(setHighContrast(true));
+            speak('High contrast mode enabled', { priority: 'high' });
+        }
+        else if (command.includes('high contrast off') || command.includes('disable high contrast')) {
+            dispatch(setHighContrast(false));
+            speak('High contrast mode disabled', { priority: 'high' });
+        }
+        
+        // Voice speed commands
+        else if (command.includes('speak faster')) {
+            const newSpeed = Math.min(voiceSettings.speed + 0.25, 2);
+            updateVoiceSettings({ speed: newSpeed });
+            speak(`Speaking speed increased to ${newSpeed}x`, { priority: 'high' });
+        }
+        else if (command.includes('speak slower')) {
+            const newSpeed = Math.max(voiceSettings.speed - 0.25, 0.5);
+            updateVoiceSettings({ speed: newSpeed });
+            speak(`Speaking speed decreased to ${newSpeed}x`, { priority: 'high' });
+        }
+        
         // Voice mode commands
         else if (command.includes('stop listening') || command.includes('deactivate')) {
             deactivateVoiceMode();
         }
+        else if (command.includes('what is this') || command.includes('describe element')) {
+            if (currentlyFocusedElement) {
+                const desc = getElementDescription(currentlyFocusedElement);
+                if (desc) {
+                    speak(desc, { priority: 'high' });
+                } else {
+                    speak('No description available for this element', { priority: 'high' });
+                }
+            } else {
+                speak('No element is currently focused', { priority: 'high' });
+            }
+        }
         else if (command.includes('help')) {
-            speak('Available commands: go to dashboard, go to leads, go to analytics, go to settings, dark mode, light mode, create lead, search leads, and help. Hover over any element to hear its description.', {
+            speak('Available commands: go to dashboard, go to leads, go to analytics, go to settings, dark mode, light mode, increase font size, decrease font size, high contrast on, high contrast off, speak faster, speak slower, read this, stop listening, and help. Press tab to navigate between elements.', {
                 priority: 'high'
             });
         }
@@ -371,14 +562,15 @@ export const VoiceProvider = ({ children }) => {
             speak('Opening your profile', { priority: 'high' });
         }
         
-        // Hover speak commands
-        else if (command.includes('describe')) {
-            setHoverDescription(true);
-            speak('Hover descriptions enabled', { priority: 'high' });
-        }
-        else if (command.includes('stop describing')) {
-            setHoverDescription(false);
-            speak('Hover descriptions disabled', { priority: 'high' });
+        // Read commands
+        else if (command.includes('read page') || command.includes('read this page')) {
+            const main = document.querySelector('main');
+            if (main) {
+                const text = main.innerText || main.textContent;
+                if (text) {
+                    speak(text.substring(0, 500), { priority: 'high' });
+                }
+            }
         }
         
         // Logout command
@@ -389,11 +581,22 @@ export const VoiceProvider = ({ children }) => {
                 speak('Logging out', { priority: 'high' });
             }
         }
-    }, [navigate, dispatch, speak, deactivateVoiceMode]);
+    }, [navigate, dispatch, speak, deactivateVoiceMode, voiceSettings, currentlyFocusedElement, announcePageChange]);
 
     // Update voice settings
     const updateVoiceSettings = useCallback((newSettings) => {
-        setVoiceSettings(prev => ({ ...prev, ...newSettings }));
+        setVoiceSettings(prev => {
+            const updated = { ...prev, ...newSettings };
+            
+            // Save to localStorage
+            Object.keys(newSettings).forEach(key => {
+                if (typeof newSettings[key] !== 'object') {
+                    localStorage.setItem(key, newSettings[key]);
+                }
+            });
+            
+            return updated;
+        });
         
         if (recognition && newSettings.language) {
             recognition.lang = newSettings.language;
@@ -403,11 +606,23 @@ export const VoiceProvider = ({ children }) => {
             recognition.continuous = newSettings.continuousListening;
         }
         
+        if (newSettings.screenReaderMode !== undefined) {
+            setScreenReaderMode(newSettings.screenReaderMode);
+            localStorage.setItem('screenReaderMode', newSettings.screenReaderMode);
+            
+            if (newSettings.screenReaderMode) {
+                setupFocusTracking();
+            } else if (focusListenerRef.current) {
+                document.removeEventListener('focusin', focusListenerRef.current);
+            }
+        }
+        
         speak('Voice settings updated', { priority: 'low' });
     }, [recognition, speak]);
 
     const value = {
         voiceMode,
+        screenReaderMode,
         isListening,
         voiceSupported,
         transcript,
@@ -416,13 +631,16 @@ export const VoiceProvider = ({ children }) => {
         lastSpoken,
         isSpeaking,
         speechQueue,
+        currentlyFocusedElement,
         toggleVoiceMode,
         startListening,
         stopListening,
         speak,
+        announcePageChange,
+        announceAlert,
         updateVoiceSettings,
         processVoiceCommand,
-        hoverDescription
+        getElementDescription
     };
 
     return (
@@ -431,6 +649,3 @@ export const VoiceProvider = ({ children }) => {
         </VoiceContext.Provider>
     );
 };
-
-// Helper to track last spoken time
-let lastSpokenTime = 0;
