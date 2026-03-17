@@ -1,9 +1,9 @@
-// src/context/VoiceContext.jsx (updated with screen reader support)
+// src/context/VoiceContext.jsx (fixed version)
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setTheme, setFontSize, setHighContrast } from '../store/slices/uiSlice';
+import { setTheme, setFontSize, setHighContrast, setReduceMotion } from '../store/slices/uiSlice';
 
 const VoiceContext = createContext();
 
@@ -19,8 +19,8 @@ export const VoiceProvider = ({ children }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     
+    // State declarations first
     const [voiceMode, setVoiceMode] = useState(() => {
-        // Check if user has previously enabled voice mode
         return localStorage.getItem('voiceMode') === 'true';
     });
     const [screenReaderMode, setScreenReaderMode] = useState(() => {
@@ -62,6 +62,439 @@ export const VoiceProvider = ({ children }) => {
             low: 3
         }
     });
+
+    // Define functions before they're used in other functions
+    const getElementDescription = useCallback((element) => {
+        if (!element) return null;
+        
+        // Check for data-voice-description attribute first
+        if (element.dataset.voiceDescription) {
+            return element.dataset.voiceDescription;
+        }
+        
+        // Check for aria-label
+        if (element.getAttribute('aria-label')) {
+            return element.getAttribute('aria-label');
+        }
+        
+        // Check for alt text on images
+        if (element.tagName === 'IMG' && element.alt) {
+            return element.alt;
+        }
+        
+        // Get text content for buttons and links
+        if (element.tagName === 'BUTTON' || element.tagName === 'A') {
+            const text = element.textContent || element.innerText;
+            if (text && text.trim()) {
+                return `${element.tagName === 'BUTTON' ? 'Button' : 'Link'}: ${text.trim()}`;
+            }
+        }
+        
+        // Get placeholder for inputs
+        if (element.tagName === 'INPUT') {
+            const type = element.type || 'text';
+            const placeholder = element.placeholder;
+            if (placeholder) {
+                return `${type} input field: ${placeholder}`;
+            }
+            return `${type} input field`;
+        }
+        
+        // Get heading text
+        if (element.tagName.match(/^H[1-6]$/)) {
+            const text = element.textContent || element.innerText;
+            if (text && text.trim()) {
+                return `Heading ${element.tagName[1]}: ${text.trim()}`;
+            }
+        }
+        
+        // For any other element, get its text content
+        const text = element.textContent || element.innerText;
+        if (text && text.trim() && text.trim().length < 100) {
+            return text.trim();
+        }
+        
+        return null;
+    }, []);
+
+    // Speak function
+    const speak = useCallback((text, options = {}) => {
+        if (!voiceSettings.voiceFeedback || !synthesis) return;
+        if (!text || text.trim() === '') return;
+
+        const {
+            priority = 'normal',
+            category = 'general',
+            onStart,
+            onEnd,
+            interrupt = false
+        } = options;
+
+        // Don't repeat the same text too quickly (within 1 second)
+        if (text === lastSpoken && Date.now() - lastSpokenTimeRef.current < 1000) {
+            return;
+        }
+
+        const priorityLevel = voiceSettings.priorityLevels[priority] || 2;
+        
+        const newItem = {
+            text,
+            priority,
+            priorityLevel,
+            category,
+            onStart,
+            onEnd,
+            timestamp: Date.now()
+        };
+
+        // Insert into queue based on priority
+        const newQueue = [...queueRef.current];
+        const insertIndex = newQueue.findIndex(item => 
+            voiceSettings.priorityLevels[item.priority] > priorityLevel
+        );
+
+        if (insertIndex === -1) {
+            newQueue.push(newItem);
+        } else {
+            newQueue.splice(insertIndex, 0, newItem);
+        }
+
+        queueRef.current = newQueue;
+        setSpeechQueue(newQueue);
+        setLastSpoken(text);
+        lastSpokenTimeRef.current = Date.now();
+
+        // If interrupting, clear current speech
+        if (interrupt && currentUtteranceRef.current) {
+            synthesis.cancel();
+        }
+    }, [synthesis, voiceSettings, lastSpoken]);
+
+    // Setup focus tracking
+    const setupFocusTracking = useCallback(() => {
+        if (focusListenerRef.current) {
+            document.removeEventListener('focusin', focusListenerRef.current);
+        }
+        
+        focusListenerRef.current = (e) => {
+            const element = e.target;
+            if (element !== currentlyFocusedElement && voiceSettings.readFocusChanges) {
+                setCurrentlyFocusedElement(element);
+                
+                // Get element description
+                const description = getElementDescription(element);
+                if (description) {
+                    speak(description, { priority: 'high', category: 'focus' });
+                }
+            }
+        };
+        
+        document.addEventListener('focusin', focusListenerRef.current);
+    }, [voiceSettings.readFocusChanges, currentlyFocusedElement, speak, getElementDescription]);
+
+    // Start listening function
+    const startListening = useCallback(() => {
+        if (!voiceSupported) {
+            toast.error('Voice recognition not supported');
+            return;
+        }
+
+        if (recognition) {
+            try {
+                recognition.start();
+                setIsListening(true);
+                if (!voiceMode) {
+                    speak('Listening for wake word: ' + voiceSettings.wakeWord, {
+                        priority: 'high'
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to start recognition:', error);
+            }
+        }
+    }, [recognition, voiceSupported, voiceMode, voiceSettings.wakeWord, speak]);
+
+    // Stop listening function
+    const stopListening = useCallback(() => {
+        if (recognition) {
+            recognition.stop();
+            setIsListening(false);
+        }
+    }, [recognition]);
+
+    // Announce page change
+    const announcePageChange = useCallback((pageName) => {
+        if (voiceSettings.readPageChanges) {
+            speak(`Navigated to ${pageName} page`, { priority: 'high', category: 'navigation' });
+        }
+    }, [speak, voiceSettings.readPageChanges]);
+
+    // Announce alert
+    const announceAlert = useCallback((message, type = 'info') => {
+        if (voiceSettings.readAlerts) {
+            speak(`${type}: ${message}`, { priority: 'high', category: 'alert' });
+        }
+    }, [speak, voiceSettings.readAlerts]);
+
+    // Update voice settings
+    const updateVoiceSettings = useCallback((newSettings) => {
+        setVoiceSettings(prev => {
+            const updated = { ...prev, ...newSettings };
+            
+            // Save to localStorage
+            Object.keys(newSettings).forEach(key => {
+                if (typeof newSettings[key] !== 'object') {
+                    localStorage.setItem(key, newSettings[key]);
+                }
+            });
+            
+            return updated;
+        });
+        
+        if (recognition && newSettings.language) {
+            recognition.lang = newSettings.language;
+        }
+        
+        if (newSettings.continuousListening !== undefined && recognition) {
+            recognition.continuous = newSettings.continuousListening;
+        }
+        
+        if (newSettings.screenReaderMode !== undefined) {
+            setScreenReaderMode(newSettings.screenReaderMode);
+            localStorage.setItem('screenReaderMode', newSettings.screenReaderMode);
+            
+            if (newSettings.screenReaderMode) {
+                setupFocusTracking();
+            } else if (focusListenerRef.current) {
+                document.removeEventListener('focusin', focusListenerRef.current);
+            }
+        }
+        
+        speak('Voice settings updated', { priority: 'low' });
+    }, [recognition, speak, setupFocusTracking]);
+
+    // Process voice commands
+    const processVoiceCommand = useCallback((command) => {
+        console.log('Processing command:', command);
+
+        // Navigation commands
+        if (command.includes('go to dashboard') || command.includes('open dashboard')) {
+            navigate('/dashboard');
+            announcePageChange('dashboard');
+        }
+        else if (command.includes('go to leads') || command.includes('open leads')) {
+            navigate('/leads');
+            announcePageChange('leads');
+        }
+        else if (command.includes('go to analytics') || command.includes('open analytics')) {
+            navigate('/analytics');
+            announcePageChange('analytics');
+        }
+        else if (command.includes('go to settings') || command.includes('open settings')) {
+            navigate('/settings');
+            announcePageChange('settings');
+        }
+        else if (command.includes('go to help') || command.includes('open help')) {
+            navigate('/help');
+            announcePageChange('help');
+        }
+        
+        // Theme commands
+        else if (command.includes('dark mode')) {
+            dispatch(setTheme('dark'));
+            speak('Switching to dark mode', { priority: 'high' });
+        }
+        else if (command.includes('light mode')) {
+            dispatch(setTheme('light'));
+            speak('Switching to light mode', { priority: 'high' });
+        }
+        
+        // Font size commands
+        else if (command.includes('increase font size') || command.includes('larger text')) {
+            dispatch(setFontSize('large'));
+            speak('Font size increased', { priority: 'high' });
+        }
+        else if (command.includes('decrease font size') || command.includes('smaller text')) {
+            dispatch(setFontSize('small'));
+            speak('Font size decreased', { priority: 'high' });
+        }
+        else if (command.includes('normal font size') || command.includes('reset font size')) {
+            dispatch(setFontSize('medium'));
+            speak('Font size reset to normal', { priority: 'high' });
+        }
+        
+        // High contrast commands
+        else if (command.includes('high contrast on') || command.includes('enable high contrast')) {
+            dispatch(setHighContrast(true));
+            speak('High contrast mode enabled', { priority: 'high' });
+        }
+        else if (command.includes('high contrast off') || command.includes('disable high contrast')) {
+            dispatch(setHighContrast(false));
+            speak('High contrast mode disabled', { priority: 'high' });
+        }
+        
+        // Reduce motion commands
+        else if (command.includes('reduce motion on') || command.includes('disable animations')) {
+            dispatch(setReduceMotion(true));
+            speak('Reduced motion enabled', { priority: 'high' });
+        }
+        else if (command.includes('reduce motion off') || command.includes('enable animations')) {
+            dispatch(setReduceMotion(false));
+            speak('Reduced motion disabled', { priority: 'high' });
+        }
+        
+        // Voice speed commands
+        else if (command.includes('speak faster')) {
+            const newSpeed = Math.min(voiceSettings.speed + 0.25, 2);
+            updateVoiceSettings({ speed: newSpeed });
+            speak(`Speaking speed increased to ${newSpeed}x`, { priority: 'high' });
+        }
+        else if (command.includes('speak slower')) {
+            const newSpeed = Math.max(voiceSettings.speed - 0.25, 0.5);
+            updateVoiceSettings({ speed: newSpeed });
+            speak(`Speaking speed decreased to ${newSpeed}x`, { priority: 'high' });
+        }
+        
+        // Voice mode commands
+        else if (command.includes('stop listening') || command.includes('deactivate')) {
+            deactivateVoiceMode();
+        }
+        else if (command.includes('what is this') || command.includes('describe element')) {
+            if (currentlyFocusedElement) {
+                const desc = getElementDescription(currentlyFocusedElement);
+                if (desc) {
+                    speak(desc, { priority: 'high' });
+                } else {
+                    speak('No description available for this element', { priority: 'high' });
+                }
+            } else {
+                speak('No element is currently focused. Press Tab to focus an element.', { priority: 'high' });
+            }
+        }
+        else if (command.includes('read page') || command.includes('read this page')) {
+            const main = document.querySelector('main');
+            if (main) {
+                const text = main.innerText || main.textContent;
+                if (text) {
+                    speak(text.substring(0, 500), { priority: 'high' });
+                }
+            }
+        }
+        else if (command.includes('help')) {
+            speak('Available commands: go to dashboard, go to leads, go to analytics, go to settings, dark mode, light mode, increase font size, decrease font size, high contrast on, high contrast off, reduce motion on, reduce motion off, speak faster, speak slower, read page, what is this, stop listening, and help. Press Tab to navigate between elements.', {
+                priority: 'high'
+            });
+        }
+        
+        // Lead commands
+        else if (command.includes('create lead') || command.includes('add lead')) {
+            const addButton = document.querySelector('[data-testid="add-lead-button"]');
+            if (addButton) {
+                addButton.click();
+                speak('Opening lead creation form', { priority: 'high' });
+            } else {
+                navigate('/leads');
+                setTimeout(() => {
+                    const btn = document.querySelector('[data-testid="add-lead-button"]');
+                    if (btn) btn.click();
+                }, 1000);
+                speak('Navigating to leads page to create new lead', { priority: 'high' });
+            }
+        }
+        else if (command.includes('search for')) {
+            const searchTerm = command.replace('search for', '').trim();
+            if (searchTerm) {
+                navigate(`/leads?search=${encodeURIComponent(searchTerm)}`);
+                speak(`Searching for ${searchTerm}`, { priority: 'high' });
+            }
+        }
+        
+        // Profile commands
+        else if (command.includes('my profile') || command.includes('show profile')) {
+            navigate('/settings?tab=profile');
+            speak('Opening your profile', { priority: 'high' });
+        }
+        
+        // Logout command
+        else if (command.includes('logout') || command.includes('sign out')) {
+            if (window.confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('userInfo');
+                window.location.href = '/login';
+                speak('Logging out', { priority: 'high' });
+            }
+        }
+    }, [navigate, dispatch, speak, deactivateVoiceMode, voiceSettings, currentlyFocusedElement, getElementDescription, announcePageChange, updateVoiceSettings]);
+
+    // Activate voice mode
+    const activateVoiceMode = useCallback(() => {
+        setVoiceMode(true);
+        setScreenReaderMode(true);
+        localStorage.setItem('voiceMode', 'true');
+        localStorage.setItem('screenReaderMode', 'true');
+        setWakeWordDetected(true);
+        
+        // Update settings
+        setVoiceSettings(prev => ({
+            ...prev,
+            screenReaderMode: true
+        }));
+        
+        speak('Voice mode activated. Screen reader mode enabled. I will read everything as you navigate. Press tab to move between elements.', {
+            priority: 'high',
+            category: 'system'
+        });
+        
+        toast.success('Screen reader mode activated!', { icon: '🎤', duration: 3000 });
+        
+        setTimeout(() => setWakeWordDetected(false), 3000);
+        
+        // Start listening
+        startListening();
+        
+        // Setup focus tracking
+        setTimeout(() => {
+            setupFocusTracking();
+        }, 500);
+    }, [speak, startListening, setupFocusTracking]);
+
+    // Deactivate voice mode
+    const deactivateVoiceMode = useCallback(() => {
+        setVoiceMode(false);
+        setScreenReaderMode(false);
+        localStorage.setItem('voiceMode', 'false');
+        localStorage.setItem('screenReaderMode', 'false');
+        
+        setVoiceSettings(prev => ({
+            ...prev,
+            screenReaderMode: false
+        }));
+        
+        stopListening();
+        
+        // Clear speech queue
+        queueRef.current = [];
+        setSpeechQueue([]);
+        if (currentUtteranceRef.current) {
+            synthesis?.cancel();
+        }
+        
+        // Remove focus tracking
+        if (focusListenerRef.current) {
+            document.removeEventListener('focusin', focusListenerRef.current);
+        }
+        
+        speak('Screen reader mode deactivated.', { priority: 'high' });
+        toast.success('Screen reader mode deactivated');
+    }, [speak, synthesis, stopListening]);
+
+    // Toggle voice mode
+    const toggleVoiceMode = useCallback(() => {
+        if (voiceMode) {
+            deactivateVoiceMode();
+        } else {
+            activateVoiceMode();
+        }
+    }, [voiceMode, activateVoiceMode, deactivateVoiceMode]);
 
     // Initialize speech recognition and synthesis
     useEffect(() => {
@@ -136,77 +569,15 @@ export const VoiceProvider = ({ children }) => {
                 document.removeEventListener('focusin', focusListenerRef.current);
             }
         };
-    }, []);
+    }, []); // Empty dependency array for initialization
 
-    // Setup focus tracking for screen reader mode
-    const setupFocusTracking = () => {
-        focusListenerRef.current = (e) => {
-            const element = e.target;
-            if (element !== currentlyFocusedElement && voiceSettings.readFocusChanges) {
-                setCurrentlyFocusedElement(element);
-                
-                // Get element description
-                let description = getElementDescription(element);
-                if (description) {
-                    speak(description, { priority: 'high', category: 'focus' });
-                }
-            }
-        };
-        
-        document.addEventListener('focusin', focusListenerRef.current);
-    };
-
-    // Get description for any element
-    const getElementDescription = (element) => {
-        // Check for data-voice-description attribute first
-        if (element.dataset.voiceDescription) {
-            return element.dataset.voiceDescription;
+    // Update recognition settings when they change
+    useEffect(() => {
+        if (recognition) {
+            recognition.continuous = voiceSettings.continuousListening;
+            recognition.lang = voiceSettings.language;
         }
-        
-        // Check for aria-label
-        if (element.getAttribute('aria-label')) {
-            return element.getAttribute('aria-label');
-        }
-        
-        // Check for alt text on images
-        if (element.tagName === 'IMG' && element.alt) {
-            return element.alt;
-        }
-        
-        // Get text content for buttons and links
-        if (element.tagName === 'BUTTON' || element.tagName === 'A') {
-            const text = element.textContent || element.innerText;
-            if (text && text.trim()) {
-                return `Button: ${text.trim()}`;
-            }
-        }
-        
-        // Get placeholder for inputs
-        if (element.tagName === 'INPUT') {
-            const type = element.type || 'text';
-            const placeholder = element.placeholder;
-            if (placeholder) {
-                return `${type} input field: ${placeholder}`;
-            }
-            return `${type} input field`;
-        }
-        
-        // Get heading text
-        if (element.tagName.match(/^H[1-6]$/)) {
-            const text = element.textContent || element.innerText;
-            if (text && text.trim()) {
-                return `Heading: ${text.trim()}`;
-            }
-        }
-        
-        // For any other element, get its text content
-        const text = element.textContent || element.innerText;
-        if (text && text.trim() && text.trim().length < 100) {
-            return text.trim();
-        }
-        
-        return null;
-    };
+    }, [recognition, voiceSettings.continuousListening, voiceSettings.language]);
 
     // Process speech queue
     useEffect(() => {
@@ -238,7 +609,7 @@ export const VoiceProvider = ({ children }) => {
             const voices = synthesis.getVoices();
             if (voices.length > 0) {
                 // Prefer female voice for better clarity
-                const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha'));
+                const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google UK Female'));
                 if (preferredVoice) {
                     utterance.voice = preferredVoice;
                 }
@@ -276,349 +647,6 @@ export const VoiceProvider = ({ children }) => {
 
         processQueue();
     }, [speechQueue, synthesis, voiceSettings]);
-
-    // Speak text with priority queue
-    const speak = useCallback((text, options = {}) => {
-        if (!voiceSettings.voiceFeedback || !synthesis) return;
-        if (!text || text.trim() === '') return;
-
-        const {
-            priority = 'normal',
-            category = 'general',
-            onStart,
-            onEnd,
-            interrupt = false
-        } = options;
-
-        // Don't repeat the same text too quickly (within 1 second)
-        if (text === lastSpoken && Date.now() - lastSpokenTimeRef.current < 1000) {
-            return;
-        }
-
-        const priorityLevel = voiceSettings.priorityLevels[priority] || 2;
-        
-        const newItem = {
-            text,
-            priority,
-            priorityLevel,
-            category,
-            onStart,
-            onEnd,
-            timestamp: Date.now()
-        };
-
-        // Insert into queue based on priority
-        const newQueue = [...queueRef.current];
-        const insertIndex = newQueue.findIndex(item => 
-            voiceSettings.priorityLevels[item.priority] > priorityLevel
-        );
-
-        if (insertIndex === -1) {
-            newQueue.push(newItem);
-        } else {
-            newQueue.splice(insertIndex, 0, newItem);
-        }
-
-        queueRef.current = newQueue;
-        setSpeechQueue(newQueue);
-        setLastSpoken(text);
-        lastSpokenTimeRef.current = Date.now();
-
-        // If interrupting, clear current speech
-        if (interrupt && currentUtteranceRef.current) {
-            synthesis.cancel();
-        }
-    }, [synthesis, voiceSettings]);
-
-    // Announce page change
-    const announcePageChange = useCallback((pageName) => {
-        if (voiceSettings.readPageChanges) {
-            speak(`Navigated to ${pageName} page`, { priority: 'high', category: 'navigation' });
-        }
-    }, [speak, voiceSettings.readPageChanges]);
-
-    // Announce alert/notification
-    const announceAlert = useCallback((message, type = 'info') => {
-        if (voiceSettings.readAlerts) {
-            speak(`${type}: ${message}`, { priority: 'high', category: 'alert' });
-        }
-    }, [speak, voiceSettings.readAlerts]);
-
-    // Activate voice mode
-    const activateVoiceMode = useCallback(() => {
-        setVoiceMode(true);
-        setScreenReaderMode(true);
-        localStorage.setItem('voiceMode', 'true');
-        localStorage.setItem('screenReaderMode', 'true');
-        setWakeWordDetected(true);
-        
-        // Update settings
-        setVoiceSettings(prev => ({
-            ...prev,
-            screenReaderMode: true
-        }));
-        
-        speak('Voice mode activated. Screen reader mode enabled. I will read everything as you navigate. Press tab to move between elements.', {
-            priority: 'high',
-            category: 'system'
-        });
-        
-        toast.success('Screen reader mode activated!', { icon: '🎤', duration: 3000 });
-        
-        setTimeout(() => setWakeWordDetected(false), 3000);
-        
-        // Start listening
-        startListening();
-        
-        // Setup focus tracking
-        setupFocusTracking();
-    }, [speak, startListening]);
-
-    // Deactivate voice mode
-    const deactivateVoiceMode = useCallback(() => {
-        setVoiceMode(false);
-        setScreenReaderMode(false);
-        localStorage.setItem('voiceMode', 'false');
-        localStorage.setItem('screenReaderMode', 'false');
-        
-        setVoiceSettings(prev => ({
-            ...prev,
-            screenReaderMode: false
-        }));
-        
-        stopListening();
-        
-        // Clear speech queue
-        queueRef.current = [];
-        setSpeechQueue([]);
-        if (currentUtteranceRef.current) {
-            synthesis?.cancel();
-        }
-        
-        // Remove focus tracking
-        if (focusListenerRef.current) {
-            document.removeEventListener('focusin', focusListenerRef.current);
-        }
-        
-        speak('Screen reader mode deactivated.', { priority: 'high' });
-        toast.success('Screen reader mode deactivated');
-    }, [speak, synthesis, stopListening]);
-
-    // Start listening
-    const startListening = useCallback(() => {
-        if (!voiceSupported) {
-            toast.error('Voice recognition not supported');
-            return;
-        }
-
-        if (recognition) {
-            try {
-                recognition.start();
-                setIsListening(true);
-                if (!voiceMode) {
-                    speak('Listening for wake word: ' + voiceSettings.wakeWord, {
-                        priority: 'high'
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to start recognition:', error);
-            }
-        }
-    }, [recognition, voiceSupported, voiceMode, voiceSettings.wakeWord, speak]);
-
-    // Stop listening
-    const stopListening = useCallback(() => {
-        if (recognition) {
-            recognition.stop();
-            setIsListening(false);
-        }
-    }, [recognition]);
-
-    // Toggle voice mode
-    const toggleVoiceMode = useCallback(() => {
-        if (voiceMode) {
-            deactivateVoiceMode();
-        } else {
-            activateVoiceMode();
-        }
-    }, [voiceMode, activateVoiceMode, deactivateVoiceMode]);
-
-    // Process voice commands
-    const processVoiceCommand = useCallback((command) => {
-        console.log('Processing command:', command);
-
-        // Navigation commands
-        if (command.includes('go to dashboard') || command.includes('open dashboard')) {
-            navigate('/dashboard');
-            announcePageChange('dashboard');
-        }
-        else if (command.includes('go to leads') || command.includes('open leads')) {
-            navigate('/leads');
-            announcePageChange('leads');
-        }
-        else if (command.includes('go to analytics') || command.includes('open analytics')) {
-            navigate('/analytics');
-            announcePageChange('analytics');
-        }
-        else if (command.includes('go to settings') || command.includes('open settings')) {
-            navigate('/settings');
-            announcePageChange('settings');
-        }
-        
-        // Theme commands
-        else if (command.includes('dark mode')) {
-            dispatch(setTheme('dark'));
-            speak('Switching to dark mode', { priority: 'high' });
-        }
-        else if (command.includes('light mode')) {
-            dispatch(setTheme('light'));
-            speak('Switching to light mode', { priority: 'high' });
-        }
-        
-        // Font size commands
-        else if (command.includes('increase font size') || command.includes('larger text')) {
-            dispatch(setFontSize('large'));
-            speak('Font size increased', { priority: 'high' });
-        }
-        else if (command.includes('decrease font size') || command.includes('smaller text')) {
-            dispatch(setFontSize('small'));
-            speak('Font size decreased', { priority: 'high' });
-        }
-        else if (command.includes('normal font size') || command.includes('reset font size')) {
-            dispatch(setFontSize('medium'));
-            speak('Font size reset to normal', { priority: 'high' });
-        }
-        
-        // High contrast commands
-        else if (command.includes('high contrast on') || command.includes('enable high contrast')) {
-            dispatch(setHighContrast(true));
-            speak('High contrast mode enabled', { priority: 'high' });
-        }
-        else if (command.includes('high contrast off') || command.includes('disable high contrast')) {
-            dispatch(setHighContrast(false));
-            speak('High contrast mode disabled', { priority: 'high' });
-        }
-        
-        // Voice speed commands
-        else if (command.includes('speak faster')) {
-            const newSpeed = Math.min(voiceSettings.speed + 0.25, 2);
-            updateVoiceSettings({ speed: newSpeed });
-            speak(`Speaking speed increased to ${newSpeed}x`, { priority: 'high' });
-        }
-        else if (command.includes('speak slower')) {
-            const newSpeed = Math.max(voiceSettings.speed - 0.25, 0.5);
-            updateVoiceSettings({ speed: newSpeed });
-            speak(`Speaking speed decreased to ${newSpeed}x`, { priority: 'high' });
-        }
-        
-        // Voice mode commands
-        else if (command.includes('stop listening') || command.includes('deactivate')) {
-            deactivateVoiceMode();
-        }
-        else if (command.includes('what is this') || command.includes('describe element')) {
-            if (currentlyFocusedElement) {
-                const desc = getElementDescription(currentlyFocusedElement);
-                if (desc) {
-                    speak(desc, { priority: 'high' });
-                } else {
-                    speak('No description available for this element', { priority: 'high' });
-                }
-            } else {
-                speak('No element is currently focused', { priority: 'high' });
-            }
-        }
-        else if (command.includes('help')) {
-            speak('Available commands: go to dashboard, go to leads, go to analytics, go to settings, dark mode, light mode, increase font size, decrease font size, high contrast on, high contrast off, speak faster, speak slower, read this, stop listening, and help. Press tab to navigate between elements.', {
-                priority: 'high'
-            });
-        }
-        
-        // Lead commands
-        else if (command.includes('create lead') || command.includes('add lead')) {
-            const addButton = document.querySelector('[data-testid="add-lead-button"]');
-            if (addButton) {
-                addButton.click();
-                speak('Opening lead creation form', { priority: 'high' });
-            } else {
-                navigate('/leads');
-                setTimeout(() => {
-                    const btn = document.querySelector('[data-testid="add-lead-button"]');
-                    if (btn) btn.click();
-                }, 1000);
-                speak('Navigating to leads page to create new lead', { priority: 'high' });
-            }
-        }
-        else if (command.includes('search for')) {
-            const searchTerm = command.replace('search for', '').trim();
-            if (searchTerm) {
-                navigate(`/leads?search=${encodeURIComponent(searchTerm)}`);
-                speak(`Searching for ${searchTerm}`, { priority: 'high' });
-            }
-        }
-        
-        // Profile commands
-        else if (command.includes('my profile') || command.includes('show profile')) {
-            navigate('/settings?tab=profile');
-            speak('Opening your profile', { priority: 'high' });
-        }
-        
-        // Read commands
-        else if (command.includes('read page') || command.includes('read this page')) {
-            const main = document.querySelector('main');
-            if (main) {
-                const text = main.innerText || main.textContent;
-                if (text) {
-                    speak(text.substring(0, 500), { priority: 'high' });
-                }
-            }
-        }
-        
-        // Logout command
-        else if (command.includes('logout') || command.includes('sign out')) {
-            if (window.confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('userInfo');
-                window.location.href = '/login';
-                speak('Logging out', { priority: 'high' });
-            }
-        }
-    }, [navigate, dispatch, speak, deactivateVoiceMode, voiceSettings, currentlyFocusedElement, announcePageChange]);
-
-    // Update voice settings
-    const updateVoiceSettings = useCallback((newSettings) => {
-        setVoiceSettings(prev => {
-            const updated = { ...prev, ...newSettings };
-            
-            // Save to localStorage
-            Object.keys(newSettings).forEach(key => {
-                if (typeof newSettings[key] !== 'object') {
-                    localStorage.setItem(key, newSettings[key]);
-                }
-            });
-            
-            return updated;
-        });
-        
-        if (recognition && newSettings.language) {
-            recognition.lang = newSettings.language;
-        }
-        
-        if (newSettings.continuousListening !== undefined && recognition) {
-            recognition.continuous = newSettings.continuousListening;
-        }
-        
-        if (newSettings.screenReaderMode !== undefined) {
-            setScreenReaderMode(newSettings.screenReaderMode);
-            localStorage.setItem('screenReaderMode', newSettings.screenReaderMode);
-            
-            if (newSettings.screenReaderMode) {
-                setupFocusTracking();
-            } else if (focusListenerRef.current) {
-                document.removeEventListener('focusin', focusListenerRef.current);
-            }
-        }
-        
-        speak('Voice settings updated', { priority: 'low' });
-    }, [recognition, speak]);
 
     const value = {
         voiceMode,
