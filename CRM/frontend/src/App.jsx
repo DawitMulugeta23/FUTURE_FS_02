@@ -1,5 +1,5 @@
 // src/App.jsx
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import {
@@ -9,90 +9,14 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
+import Login from "./components/Auth/Login"; // Change from VoiceLogin to regular Login
 import Register from "./components/Auth/Register";
-import VoiceLogin from "./components/Auth/VoiceLogin";
-import VoiceCommandBar from "./components/Voice/VoiceCommandBar";
-import { VoiceProvider, useVoice } from "./context/VoiceContext";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
 import Leads from "./pages/Leads";
 import Settings from "./pages/Settings";
 import { store } from "./store/store";
-
-// Add global CSS for accessibility
-const accessibilityStyles = `
-    /* High contrast mode */
-    .high-contrast {
-        filter: contrast(1.5);
-    }
-    
-    .high-contrast.dark {
-        background-color: #000 !important;
-        color: #fff !important;
-    }
-    
-    .high-contrast.light {
-        background-color: #fff !important;
-        color: #000 !important;
-    }
-    
-    .high-contrast a {
-        color: #ffff00 !important;
-        text-decoration: underline !important;
-    }
-    
-    .high-contrast button {
-        border: 2px solid currentColor !important;
-    }
-    
-    /* Focus indicators for keyboard navigation */
-    *:focus-visible {
-        outline: 3px solid #ffbf00 !important;
-        outline-offset: 2px !important;
-    }
-    
-    /* Reduce motion */
-    .reduce-motion * {
-        animation: none !important;
-        transition: none !important;
-    }
-    
-    /* Font size classes */
-    .text-sm {
-        font-size: 14px !important;
-    }
-    
-    .text-base {
-        font-size: 16px !important;
-    }
-    
-    .text-lg {
-        font-size: 18px !important;
-    }
-    
-    .text-xl {
-        font-size: 20px !important;
-    }
-    
-    /* Screen reader only */
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border-width: 0;
-    }
-`;
-
-// Inject styles
-const styleSheet = document.createElement("style");
-styleSheet.textContent = accessibilityStyles;
-document.head.appendChild(styleSheet);
 
 // Private Route Component
 const PrivateRoute = ({ children }) => {
@@ -106,29 +30,13 @@ const PublicRoute = ({ children }) => {
   return !user ? children : <Navigate to="/dashboard" />;
 };
 
-// Main App Content with Voice
+// Main App Content
 function AppContent() {
   const dispatch = useDispatch();
   const { theme, fontSize, highContrast, reduceMotion } = useSelector(
     (state) => state.ui,
   );
   const location = useLocation();
-  const [initialized, setInitialized] = useState(false);
-
-  // Use voice context safely
-  let voiceContext;
-  let voiceMode = false;
-  let screenReaderMode = false;
-  let announcePageChange = () => {};
-
-  try {
-    voiceContext = useVoice();
-    voiceMode = voiceContext.voiceMode;
-    screenReaderMode = voiceContext.screenReaderMode;
-    announcePageChange = voiceContext.announcePageChange;
-  } catch (error) {
-    console.log("Voice context not available yet");
-  }
 
   // Apply theme and accessibility settings
   useEffect(() => {
@@ -162,36 +70,7 @@ function AppContent() {
     } else {
       root.classList.remove("reduce-motion");
     }
-
-    setInitialized(true);
   }, [theme, fontSize, highContrast, reduceMotion]);
-
-  // Announce page changes for screen reader
-  useEffect(() => {
-    if (initialized && screenReaderMode && announcePageChange) {
-      const pageName = location.pathname.replace("/", "") || "dashboard";
-      announcePageChange(pageName);
-    }
-  }, [location.pathname, initialized, screenReaderMode, announcePageChange]);
-
-  // Check if user might be blind (can add a URL parameter for demo)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessibilityMode = urlParams.get("accessibility");
-
-    if (accessibilityMode === "blind" && !voiceMode) {
-      // Auto-activate voice mode for blind users
-      setTimeout(() => {
-        if (voiceContext && voiceContext.toggleVoiceMode) {
-          voiceContext.toggleVoiceMode();
-        }
-      }, 2000);
-    }
-  }, []);
-
-  // Don't show voice command bar on login/register pages
-  const showVoiceBar =
-    voiceMode && !["/login", "/register"].includes(location.pathname);
 
   return (
     <>
@@ -208,7 +87,7 @@ function AppContent() {
           path="/login"
           element={
             <PublicRoute>
-              <VoiceLogin />
+              <Login />
             </PublicRoute>
           }
         />
@@ -293,8 +172,6 @@ function AppContent() {
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
 
-      {showVoiceBar && <VoiceCommandBar />}
-
       <Toaster
         position="top-right"
         toastOptions={{
@@ -309,14 +186,12 @@ function AppContent() {
   );
 }
 
-// Main App with Providers in correct order
+// Main App
 function App() {
   return (
     <Provider store={store}>
       <Router>
-        <VoiceProvider>
-          <AppContent />
-        </VoiceProvider>
+        <AppContent />
       </Router>
     </Provider>
   );

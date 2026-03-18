@@ -39,7 +39,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Layout/Navbar";
 import Sidebar from "../components/Layout/Sidebar";
 import ProfileAvatar from "../components/Profile/ProfileAvatar";
-import { useVoice } from "../context/VoiceContext";
 import { logout } from "../store/slices/authSlice";
 import { setTheme } from "../store/slices/uiSlice";
 
@@ -204,7 +203,6 @@ const Settings = () => {
     anonymizeData: false,
   });
 
-  // Tabs configuration
   const tabs = [
     { id: "profile", name: "Profile", icon: FiUser, color: "blue" },
     {
@@ -213,7 +211,6 @@ const Settings = () => {
       icon: FiBell,
       color: "yellow",
     },
-    { id: "voice", name: "Voice & Audio", icon: FiMic, color: "purple" },
     { id: "appearance", name: "Appearance", icon: FiMoon, color: "indigo" },
     {
       id: "privacy",

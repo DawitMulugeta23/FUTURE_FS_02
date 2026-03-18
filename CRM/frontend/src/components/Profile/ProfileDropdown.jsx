@@ -3,68 +3,37 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    FiBell,
-    FiChevronDown,
-    FiDatabase,
-    FiHeadphones,
-    FiHelpCircle,
-    FiLogOut,
-    FiMail,
-    FiMic,
-    FiMoon,
-    FiSettings,
-    FiShield,
-    FiSun,
-    FiUser,
-    FiVolume2,
-    FiVolumeX,
+  FiBell,
+  FiChevronDown,
+  FiDatabase,
+  FiHelpCircle,
+  FiLogOut,
+  FiMail,
+  FiMoon,
+  FiSettings,
+  FiShield,
+  FiSun,
+  FiUser,
 } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useVoice } from "../../context/VoiceContext";
 import { logout } from "../../store/slices/authSlice";
 import { setTheme } from "../../store/slices/uiSlice";
 import ProfileAvatar from "./ProfileAvatar";
 
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showVoiceMenu, setShowVoiceMenu] = useState(false);
   const dropdownRef = useRef(null);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.ui);
 
-  // Safely use voice context
-  let voiceContext;
-  try {
-    voiceContext = useVoice();
-  } catch (error) {
-    voiceContext = {
-      voiceMode: false,
-      isListening: false,
-      voiceSupported: false,
-      toggleVoiceMode: () => {},
-      speak: () => {},
-      voiceSettings: { wakeWord: "hey crm" },
-    };
-  }
-
-  const {
-    voiceMode,
-    isListening,
-    voiceSupported,
-    toggleVoiceMode,
-    speak,
-    voiceSettings,
-  } = voiceContext;
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
-        setShowVoiceMenu(false);
       }
     };
 
@@ -76,33 +45,17 @@ const ProfileDropdown = () => {
     dispatch(logout());
     navigate("/login");
     toast.success("Logged out successfully");
-    if (voiceMode) {
-      speak("Logging out. Goodbye!");
-    }
   };
 
   const handleThemeToggle = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     dispatch(setTheme(newTheme));
     toast.success(`Switched to ${newTheme} mode`);
-    if (voiceMode) {
-      speak(`Switching to ${newTheme} mode`);
-    }
   };
 
   const handleNavigation = (path) => {
     navigate(path);
     setIsOpen(false);
-    if (voiceMode) {
-      speak(`Navigating to ${path.replace("/", "")}`);
-    }
-  };
-
-  const handleVoiceTest = () => {
-    speak(
-      "This is a test of the voice system. Your voice settings are working properly.",
-    );
-    toast.success("Voice test initiated");
   };
 
   const menuItems = [
@@ -163,14 +116,6 @@ const ProfileDropdown = () => {
         <FiChevronDown
           className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
-
-        {/* Voice Mode Indicator */}
-        {voiceMode && (
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
-        )}
       </button>
 
       {/* Dropdown Menu */}
@@ -199,125 +144,6 @@ const ProfileDropdown = () => {
               </div>
             </div>
 
-            {/* Voice Mode Toggle - Prominent Position */}
-            {voiceSupported && (
-              <div className="p-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className={`p-2 rounded-lg ${voiceMode ? "bg-green-100 dark:bg-green-900/20" : "bg-gray-200 dark:bg-gray-600"}`}
-                    >
-                      {voiceMode ? (
-                        <FiVolume2
-                          className={`h-4 w-4 ${voiceMode ? "text-green-600" : "text-gray-600"}`}
-                        />
-                      ) : (
-                        <FiVolumeX className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        Voice Mode
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {voiceMode
-                          ? isListening
-                            ? "Listening..."
-                            : "Active"
-                          : "Off"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={toggleVoiceMode}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      voiceMode
-                        ? "bg-primary-600"
-                        : "bg-gray-300 dark:bg-gray-600"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        voiceMode ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Quick Voice Actions */}
-                {voiceMode && (
-                  <div className="mt-2 flex items-center space-x-2">
-                    <button
-                      onClick={handleVoiceTest}
-                      className="flex-1 text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 transition-colors flex items-center justify-center space-x-1"
-                    >
-                      <FiHeadphones className="h-3 w-3" />
-                      <span>Test Voice</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowVoiceMenu(!showVoiceMenu);
-                        speak("Voice settings menu");
-                      }}
-                      className="flex-1 text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center justify-center space-x-1"
-                    >
-                      <FiSettings className="h-3 w-3" />
-                      <span>Settings</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Voice Settings Submenu */}
-            <AnimatePresence>
-              {showVoiceMenu && voiceMode && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-3"
-                >
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                    Voice Settings
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Wake Word
-                      </span>
-                      <span className="text-primary-600 font-medium">
-                        "{voiceSettings.wakeWord}"
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Language
-                      </span>
-                      <span className="text-primary-600 font-medium">
-                        {voiceSettings.language}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Available Commands
-                      </span>
-                      <button
-                        onClick={() => {
-                          speak(
-                            "Available commands: go to dashboard, leads, analytics, settings, dark mode, light mode, create lead, search",
-                          );
-                        }}
-                        className="text-xs text-primary-600 hover:text-primary-700"
-                      >
-                        Listen
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Menu Items */}
             <div className="py-2">
               {menuItems.map((item, index) => (
@@ -330,11 +156,6 @@ const ProfileDropdown = () => {
                   <span className="flex-1 text-left text-sm text-gray-700 dark:text-gray-300">
                     {item.label}
                   </span>
-                  {voiceMode && (
-                    <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Say "{item.label.toLowerCase()}"
-                    </span>
-                  )}
                 </button>
               ))}
             </div>
@@ -354,7 +175,10 @@ const ProfileDropdown = () => {
                 </div>
                 <button
                   onClick={handleThemeToggle}
-                  className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300 dark:bg-gray-600"
+                  className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                  style={{
+                    backgroundColor: theme === "dark" ? "#4f46e5" : "#d1d5db",
+                  }}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -375,23 +199,12 @@ const ProfileDropdown = () => {
                 <span className="flex-1 text-left text-sm font-medium">
                   Logout
                 </span>
-                {voiceMode && (
-                  <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Say "logout"
-                  </span>
-                )}
               </button>
             </div>
 
             {/* Footer */}
             <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
               <span>Version 2.0.0</span>
-              {voiceMode && (
-                <span className="flex items-center">
-                  <FiMic className="h-3 w-3 mr-1 text-green-500" />
-                  Voice active
-                </span>
-              )}
             </div>
           </motion.div>
         )}
