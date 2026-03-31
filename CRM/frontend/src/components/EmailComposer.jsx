@@ -162,9 +162,7 @@ const EmailComposer = ({ leads = [], onClose, onSuccess }) => {
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                                     focus:outline-none focus:ring-2 focus:ring-primary-500
-                                     dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
               placeholder="Email subject"
             />
           </div>
@@ -178,9 +176,7 @@ const EmailComposer = ({ leads = [], onClose, onSuccess }) => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows="10"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                                     focus:outline-none focus:ring-2 focus:ring-primary-500
-                                     dark:bg-gray-700 dark:text-white resize-y"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white resize-y"
               placeholder="Write your message here..."
             />
           </div>
