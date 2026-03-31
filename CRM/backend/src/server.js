@@ -5,8 +5,24 @@ const dotenv = require("dotenv");
 const path = require("path");
 const colors = require("colors");
 
-// Load env vars
-dotenv.config({ path: path.join(__dirname, ".env") });
+// Load env vars - .env lives in backend root, and this file is in backend/src
+const envPath = path.join(__dirname, "..", ".env");
+console.log("Loading .env from:", envPath);
+const envLoadResult = dotenv.config({ path: envPath });
+if (envLoadResult.error) {
+  console.warn("Warning: .env file not found at expected location:", envPath);
+}
+
+// Verify environment variables are loaded
+console.log(
+  "MONGODB_URI:",
+  process.env.MONGODB_URI ? "✓ Loaded" : "✗ Not loaded",
+);
+console.log(
+  "JWT_SECRET:",
+  process.env.JWT_SECRET ? "✓ Loaded" : "✗ Not loaded",
+);
+console.log("PORT:", process.env.PORT || "5000");
 
 // Import database connection
 const connectDB = require("./config/db");

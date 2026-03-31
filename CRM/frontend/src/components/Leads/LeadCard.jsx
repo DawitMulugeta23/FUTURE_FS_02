@@ -3,7 +3,6 @@ import { formatDistanceToNow } from "date-fns";
 import md5 from "md5";
 import { useEffect, useState } from "react";
 import { FiBriefcase, FiCalendar, FiMail, FiPhone } from "react-icons/fi";
-import { FiMail, FiBriefcase, FiCalendar, FiMail as FiMailIcon, FiPhone } from "react-icons/fi";
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
   contacted:
