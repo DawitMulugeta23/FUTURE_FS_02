@@ -1,3 +1,4 @@
+// src/components/EmailComposer.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FiMail, FiSend, FiUsers, FiX } from "react-icons/fi";
@@ -9,6 +10,14 @@ const EmailComposer = ({ leads = [], onClose, onSuccess }) => {
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [sending, setSending] = useState(false);
+
+  // Initialize selected leads when component mounts
+  useState(() => {
+    if (leads && leads.length > 0) {
+      setSelectedLeadIds(leads.map((lead) => lead._id));
+      setSelectAll(true);
+    }
+  }, [leads]);
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -22,8 +31,12 @@ const EmailComposer = ({ leads = [], onClose, onSuccess }) => {
   const handleSelectLead = (leadId) => {
     if (selectedLeadIds.includes(leadId)) {
       setSelectedLeadIds(selectedLeadIds.filter((id) => id !== leadId));
+      setSelectAll(false);
     } else {
       setSelectedLeadIds([...selectedLeadIds, leadId]);
+      if (selectedLeadIds.length + 1 === leads.length) {
+        setSelectAll(true);
+      }
     }
   };
 

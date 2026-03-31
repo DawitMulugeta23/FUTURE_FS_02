@@ -2,11 +2,11 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    FiFilter,
-    FiMail,
-    FiPlus,
-    FiRefreshCw,
-    FiSearch,
+  FiFilter,
+  FiMail,
+  FiPlus,
+  FiRefreshCw,
+  FiSearch,
 } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import Navbar from "../components/Layout/Navbar";
@@ -15,10 +15,10 @@ import LeadCard from "../components/Leads/LeadCard";
 import LeadDetails from "../components/Leads/LeadDetails";
 import LeadForm from "../components/Leads/LeadForm";
 import {
-    fetchLeads,
-    setFilters,
-    setPage,
-    setSelectedLead,
+  fetchLeads,
+  setFilters,
+  setPage,
+  setSelectedLead,
 } from "../store/slices/leadSlice";
 import EmailComposer from "./EmailComposer";
 const Leads = () => {
@@ -398,6 +398,41 @@ const Leads = () => {
                 limit: pagination.limit,
               }),
             );
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Leads;
+ad && (
+        <LeadDetails
+          lead={selectedLead}
+          onClose={() => dispatch(setSelectedLead(null))}
+          onUpdate={() => {
+            dispatch(
+              fetchLeads({
+                ...filters,
+                page: pagination.page,
+                limit: pagination.limit,
+              }),
+            );
+          }}
+        />
+      )}
+
+      {showEmailComposer && (
+        <EmailComposer
+          leads={selectedLeadsForEmail}
+          onClose={() => {
+            setShowEmailComposer(false);
+            setSelectedSingleLead(null);
+          }}
+          onSuccess={() => {
+            setShowEmailComposer(false);
+            setSelectedSingleLead(null);
+            toast.success("Email(s) sent successfully");
           }}
         />
       )}

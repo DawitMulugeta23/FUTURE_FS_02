@@ -1,38 +1,15 @@
 // src/pages/Help.jsx
 import { motion } from "framer-motion";
-import {
-  FiCommand,
-  FiHelpCircle,
-  FiMic,
-  FiSettings,
-  FiUser,
-  FiVolume2,
-} from "react-icons/fi";
+import { FiHelpCircle, FiSettings, FiUser } from "react-icons/fi";
 import Navbar from "../components/Layout/Navbar";
 import Sidebar from "../components/Layout/Sidebar";
 
 const Help = () => {
-  const voiceCommands = [
-    { command: "Hey CRM", description: "Activate voice mode" },
-    { command: "Go to dashboard", description: "Navigate to dashboard" },
-    { command: "Go to leads", description: "Open leads page" },
-    { command: "Go to analytics", description: "View analytics" },
-    { command: "Go to settings", description: "Open settings" },
-    { command: "Dark mode", description: "Switch to dark theme" },
-    { command: "Light mode", description: "Switch to light theme" },
-    { command: "Create lead", description: "Add new lead" },
-    { command: "Search for [term]", description: "Search leads" },
-    { command: "My profile", description: "View profile" },
-    { command: "Logout", description: "Sign out" },
-    { command: "Stop listening", description: "Deactivate voice mode" },
-    { command: "Help", description: "Show this help page" },
-  ];
-
   const faqs = [
     {
-      question: "How do I activate voice mode?",
+      question: "How do I add a new lead?",
       answer:
-        "Click the voice icon in the navbar or say 'Hey CRM' when voice mode is enabled.",
+        "Click on the 'Add New Lead' button on the Leads page or Dashboard. Fill in the lead's information and click 'Create Lead'.",
     },
     {
       question: "How do I change my profile picture?",
@@ -40,14 +17,14 @@ const Help = () => {
         "Click on your profile picture in the navbar, then click on it again in the dropdown to upload a new photo or use Gravatar.",
     },
     {
-      question: "What voice commands are available?",
+      question: "How do I send emails to leads?",
       answer:
-        "You can use commands for navigation, theme switching, lead management, and more. Check the voice commands list below.",
+        "You can send emails to leads by clicking the 'Email All Leads' button on the Leads page, or by clicking the 'Send Email' button on individual lead cards.",
     },
     {
-      question: "How do I customize voice settings?",
+      question: "How do I update lead status?",
       answer:
-        "Go to Settings > Voice Settings or click on the voice menu in the profile dropdown.",
+        "Click on a lead card to open the details view, then select the new status from the dropdown menu. You can also drag and drop leads in the Kanban view.",
     },
   ];
 
@@ -69,25 +46,15 @@ const Help = () => {
                 Help & Support
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Learn how to use the CRM system and its voice features
+                Learn how to use the CRM system effectively
               </p>
             </motion.div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl p-6 text-white"
-              >
-                <FiMic className="h-8 w-8 mb-3" />
-                <h3 className="font-semibold text-lg">Voice Commands</h3>
-                <p className="text-sm text-white/80">
-                  Control the CRM with your voice
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white"
               >
                 <FiUser className="h-8 w-8 mb-3" />
                 <h3 className="font-semibold text-lg">Profile Settings</h3>
@@ -134,35 +101,26 @@ const Help = () => {
               </div>
             </motion.div>
 
-            {/* Voice Commands List */}
+            {/* Contact Support */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
             >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <FiCommand className="mr-2 h-5 w-5 text-primary-500" />
-                Voice Commands
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Need More Help?
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {voiceCommands.map((cmd, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                  >
-                    <FiVolume2 className="h-4 w-4 text-primary-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        "{cmd.command}"
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {cmd.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                If you couldn't find the answer to your question, please contact
+                our support team.
+              </p>
+              <a
+                href="mailto:support@crmsystem.com"
+                className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Contact Support
+              </a>
             </motion.div>
           </div>
         </main>

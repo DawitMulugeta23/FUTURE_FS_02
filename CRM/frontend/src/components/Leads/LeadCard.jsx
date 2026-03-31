@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import md5 from "md5";
 import { useEffect, useState } from "react";
 import { FiBriefcase, FiCalendar, FiMail, FiPhone } from "react-icons/fi";
+
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
   contacted:
@@ -27,7 +28,6 @@ const LeadCard = ({ lead, onClick, onSendEmail }) => {
   }, [lead]);
 
   return (
-    
     <div
       onClick={() => onClick(lead)}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-gray-100 dark:border-gray-700 overflow-hidden"
@@ -37,17 +37,6 @@ const LeadCard = ({ lead, onClick, onSendEmail }) => {
           {/* Lead Avatar from Gravatar */}
           <div className="flex-shrink-0">
             <div className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600">
-
-            <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSendEmail(lead);
-                        }}
-                        className="text-primary-600 hover:text-primary-700 flex items-center space-x-1 text-sm"
-                    >
-                        <FiMail className="h-4 w-4" />
-                        <span>Send Email</span>
-                    </button>
               {gravatarUrl ? (
                 <img
                   src={gravatarUrl}
@@ -59,7 +48,7 @@ const LeadCard = ({ lead, onClick, onSendEmail }) => {
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold">
+                <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
                   {lead.firstName?.charAt(0)}
                   {lead.lastName?.charAt(0)}
                 </div>
@@ -124,6 +113,20 @@ const LeadCard = ({ lead, onClick, onSendEmail }) => {
             </p>
           </div>
         )}
+
+        {/* Email Button - Fixed placement */}
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSendEmail && onSendEmail(lead);
+            }}
+            className="w-full flex items-center justify-center space-x-2 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm py-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+          >
+            <FiMail className="h-4 w-4" />
+            <span>Send Email to {lead.firstName}</span>
+          </button>
+        </div>
       </div>
     </div>
   );
