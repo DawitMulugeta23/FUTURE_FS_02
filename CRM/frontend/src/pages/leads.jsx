@@ -1,19 +1,26 @@
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import { FiMail, FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi';
-import { useDispatch, useSelector } from 'react-redux';
-import EmailComposer from '../components/EmailComposer';
-import Navbar from '../components/Layout/Navbar';
-import Sidebar from '../components/Layout/Sidebar';
-import LeadCard from '../components/Leads/LeadCard';
-import LeadDetails from '../components/Leads/LeadDetails';
-import LeadForm from '../components/Leads/LeadForm';
+// src/pages/Leads.jsx
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import {
-  fetchLeads,
-  setFilters,
-  setPage,
-  setSelectedLead,
-} from '../store/slices/leadSlice';
+    FiFilter,
+    FiMail,
+    FiPlus,
+    FiRefreshCw,
+    FiSearch,
+} from "react-icons/fi";
+import { useDispatch, useSelector } from "react-redux";
+import EmailComposer from "../components/EmailComposer";
+import Navbar from "../components/Layout/Navbar";
+import Sidebar from "../components/Layout/Sidebar";
+import LeadCard from "../components/Leads/LeadCard";
+import LeadDetails from "../components/Leads/LeadDetails";
+import LeadForm from "../components/Leads/LeadForm";
+import {
+    fetchLeads,
+    setFilters,
+    setPage,
+    setSelectedLead,
+} from "../store/slices/leadSlice";
 
 const Leads = () => {
   const dispatch = useDispatch();
@@ -21,10 +28,11 @@ const Leads = () => {
     (state) => state.leads,
   );
 
+  // State declarations - IMPORTANT: showFilters is declared here
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showEmailComposer, setShowEmailComposer] = useState(false);
   const [selectedLeadsForEmail, setSelectedLeadsForEmail] = useState([]);
-  const [selectedSingleLead, setSelectedSingleLead] = useState(null);
 
   useEffect(() => {
     dispatch(
@@ -41,9 +49,14 @@ const Leads = () => {
     dispatch(setPage(1));
   };
 
+  const handleFilterChange = (key, value) => {
+    dispatch(setFilters({ [key]: value }));
+    dispatch(setPage(1));
+  };
+
   const handleSendEmailToAll = () => {
     if (leads.length === 0) {
-      toast.error('No leads available to send emails');
+      toast.error("No leads available to send emails");
       return;
     }
     setSelectedLeadsForEmail(leads);
@@ -52,7 +65,6 @@ const Leads = () => {
 
   const handleSendEmailToLead = (lead) => {
     setSelectedLeadsForEmail([lead]);
-    setSelectedSingleLead(lead);
     setShowEmailComposer(true);
   };
 
@@ -69,9 +81,9 @@ const Leads = () => {
   const handleClearFilters = () => {
     dispatch(
       setFilters({
-        status: 'all',
-        search: '',
-        sort: 'newest',
+        status: "all",
+        search: "",
+        sort: "newest",
       }),
     );
     dispatch(setPage(1));
@@ -85,6 +97,7 @@ const Leads = () => {
 
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -119,6 +132,7 @@ const Leads = () => {
               </div>
             </div>
 
+            {/* Search and Filters */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8">
               <div className="flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex items-center space-x-4 flex-wrap gap-2">
@@ -134,7 +148,11 @@ const Leads = () => {
                   </div>
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`px-4 py-2 border rounded-lg flex items-center space-x-2 transition-colors ${showFilters ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-600 dark:text-primary-400' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                    className={`px-4 py-2 border rounded-lg flex items-center space-x-2 transition-colors ${
+                      showFilters
+                        ? "bg-primary-50 dark:bg-primary-900/20 border-primary-300 dark:border-primary-700 text-primary-600 dark:text-primary-400"
+                        : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
                   >
                     <FiFilter className="h-4 w-4" />
                     <span>Filters</span>
@@ -146,6 +164,7 @@ const Leads = () => {
                 </div>
               </div>
 
+              {/* Expanded Filters */}
               {showFilters && (
                 <div className="mt-6 pt-6 border-t dark:border-gray-700">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -155,7 +174,9 @@ const Leads = () => {
                       </label>
                       <select
                         value={filters.status}
-                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("status", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="all">All Status</option>
@@ -173,7 +194,9 @@ const Leads = () => {
                       </label>
                       <select
                         value={filters.sort}
-                        onChange={(e) => handleFilterChange('sort', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("sort", e.target.value)
+                        }
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                       >
                         <option value="newest">Newest First</option>
@@ -196,6 +219,7 @@ const Leads = () => {
               )}
             </div>
 
+            {/* Leads Grid */}
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(6)].map((_, i) => (
@@ -233,16 +257,18 @@ const Leads = () => {
                   </div>
                 ) : (
                   <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                    <div className="text-gray-400 dark:text-gray-600 text-7xl mb-6">📭</div>
+                    <div className="text-gray-400 dark:text-gray-600 text-7xl mb-6">
+                      📭
+                    </div>
                     <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
                       No leads found
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                      {filters.search || filters.status !== 'all'
-                        ? 'No leads match your current filters. Try adjusting your search criteria.'
+                      {filters.search || filters.status !== "all"
+                        ? "No leads match your current filters. Try adjusting your search criteria."
                         : "You haven't added any leads yet. Start by adding your first lead!"}
                     </p>
-                    {!filters.search && filters.status === 'all' ? (
+                    {!filters.search && filters.status === "all" ? (
                       <button
                         onClick={() => setShowLeadForm(true)}
                         className="bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center space-x-2"
@@ -263,6 +289,7 @@ const Leads = () => {
               </>
             )}
 
+            {/* Pagination */}
             {pagination.pages > 1 && (
               <div className="flex justify-center mt-8 space-x-2">
                 <button
@@ -272,49 +299,9 @@ const Leads = () => {
                 >
                   Previous
                 </button>
-                <div className="flex space-x-1">
-                  {[...Array(Math.min(pagination.pages, 7))].map((_, i) => {
-                    let pageNum;
-                    if (pagination.pages <= 7) {
-                      pageNum = i + 1;
-                    } else if (pagination.page <= 4) {
-                      pageNum = i + 1;
-                      if (i === 6) pageNum = pagination.pages;
-                    } else if (pagination.page >= pagination.pages - 3) {
-                      pageNum = pagination.pages - 6 + i;
-                    } else {
-                      pageNum = pagination.page - 3 + i;
-                    }
-
-                    if (pageNum > pagination.pages) return null;
-
-                    if (i === 5 && pagination.pages > 7 && pagination.page <= 4) {
-                      return (
-                        <span key="dots1" className="px-2 py-2 text-gray-500">
-                          ...
-                        </span>
-                      );
-                    }
-                    if (i === 1 && pagination.pages > 7 && pagination.page >= pagination.pages - 3) {
-                      return (
-                        <span key="dots2" className="px-2 py-2 text-gray-500">
-                          ...
-                        </span>
-                      );
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => dispatch(setPage(pageNum))}
-                        className={`px-4 py-2 rounded-lg transition-colors ${pagination.page === pageNum ? 'bg-primary-600 text-white' : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-white'}`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
+                <span className="px-4 py-2 bg-primary-600 text-white rounded-lg">
+                  Page {pagination.page} of {pagination.pages}
+                </span>
                 <button
                   onClick={() => dispatch(setPage(pagination.page + 1))}
                   disabled={pagination.page === pagination.pages}
@@ -328,14 +315,14 @@ const Leads = () => {
         </main>
       </div>
 
+      {/* Modals */}
       {showLeadForm && (
         <LeadForm
           onClose={() => setShowLeadForm(false)}
           onSuccess={() => {
             handleRefresh();
             setShowLeadForm(false);
-          }
-          }
+          }}
         />
       )}
 
@@ -350,14 +337,10 @@ const Leads = () => {
       {showEmailComposer && (
         <EmailComposer
           leads={selectedLeadsForEmail}
-          onClose={() => {
-            setShowEmailComposer(false);
-            setSelectedSingleLead(null);
-          }}
+          onClose={() => setShowEmailComposer(false)}
           onSuccess={() => {
             setShowEmailComposer(false);
-            setSelectedSingleLead(null);
-            toast.success('Email(s) sent successfully');
+            toast.success("Email(s) sent successfully");
           }}
         />
       )}
