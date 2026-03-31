@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Provider, useSelector } from "react-redux";
@@ -15,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
 import Leads from "./pages/Leads";
 import Settings from "./pages/Settings";
+import VerifyEmail from "./pages/VerifyEmail";
 import { store } from "./store/store";
 
 // Private Route Component
@@ -71,7 +71,6 @@ function AppContent() {
 
   return (
     <>
-      {/* Skip to main content link for keyboard users */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary-600 focus:text-white focus:p-4 focus:rounded-lg"
@@ -93,6 +92,14 @@ function AppContent() {
           element={
             <PublicRoute>
               <Register />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <PublicRoute>
+              <VerifyEmail />
             </PublicRoute>
           }
         />
@@ -183,7 +190,6 @@ function AppContent() {
   );
 }
 
-// Main App
 function App() {
   return (
     <Provider store={store}>

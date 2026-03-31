@@ -1,4 +1,3 @@
-// src/services/authService.js
 import api from "./api";
 
 const extractAuthData = (payload) => {
@@ -41,6 +40,16 @@ const authService = {
     }
 
     return authData;
+  },
+
+  async verifyEmail(token) {
+    const response = await api.get(`/auth/verify-email?token=${token}`);
+    return response.data;
+  },
+
+  async resendVerification(email) {
+    const response = await api.post("/auth/resend-verification", { email });
+    return response.data;
   },
 
   async getProfile() {

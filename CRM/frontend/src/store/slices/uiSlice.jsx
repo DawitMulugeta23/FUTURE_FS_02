@@ -1,4 +1,3 @@
-// src/store/slices/uiSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
 const getInitialTheme = () => {
@@ -8,7 +7,6 @@ const getInitialTheme = () => {
       return savedTheme;
     }
 
-    // Check system preference
     if (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -68,10 +66,8 @@ const applyTheme = (theme) => {
 const applyFontSize = (fontSize) => {
   try {
     const root = document.documentElement;
-    // Remove existing font size classes
     root.classList.remove("text-sm", "text-base", "text-lg", "text-xl");
 
-    // Add new font size class
     switch (fontSize) {
       case "small":
         root.classList.add("text-sm");
@@ -101,7 +97,6 @@ const applyHighContrast = (enabled) => {
     const root = document.documentElement;
     if (enabled) {
       root.classList.add("high-contrast");
-      // Increase contrast for dark mode
       if (root.classList.contains("dark")) {
         root.style.setProperty("--bg-primary", "#000000");
         root.style.setProperty("--text-primary", "#ffffff");
@@ -129,7 +124,6 @@ const applyReduceMotion = (enabled) => {
     const root = document.documentElement;
     if (enabled) {
       root.classList.add("reduce-motion");
-      // Add CSS to disable animations
       const style = document.createElement("style");
       style.id = "reduce-motion-styles";
       style.textContent = `
@@ -194,7 +188,6 @@ const uiSlice = createSlice({
   },
 });
 
-// Apply initial settings
 setTimeout(() => {
   applyFontSize(getInitialFontSize());
   applyHighContrast(getInitialHighContrast());

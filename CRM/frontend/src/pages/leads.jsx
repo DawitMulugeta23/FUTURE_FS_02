@@ -8,7 +8,7 @@ import LeadCard from '../components/Leads/LeadCard';
 import LeadDetails from '../components/Leads/LeadDetails';
 import LeadForm from '../components/Leads/LeadForm';
 import { fetchLeads, setFilters, setPage, setSelectedLead } from '../store/slices/leadSlice';
-
+import EmailComposer from './EmailComposer';
 const Leads = () => {
     const dispatch = useDispatch();
     const { 
@@ -20,6 +20,8 @@ const Leads = () => {
     } = useSelector(state => state.leads);
     const [showLeadForm, setShowLeadForm] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [showEmailComposer, setShowEmailComposer] = useState(false);
+    const [selectedLeadsForEmail, setSelectedLeadsForEmail] = useState([]);
 
     useEffect(() => {
         dispatch(fetchLeads({
@@ -34,6 +36,10 @@ const Leads = () => {
         dispatch(setPage(1));
     };
 
+    const handleSendEmail = () => {
+        setSelectedLeadsForEmail(leads);
+        setShowEmailComposer(true);
+    };
     const handleFilterChange = (key, value) => {
         dispatch(setFilters({ [key]: value }));
         dispatch(setPage(1));
@@ -90,6 +96,18 @@ const Leads = () => {
                                     <FiPlus className="h-5 w-5" />
                                     <span>Add New Lead</span>
                                 </button>
+                                <button onClick={handleSendEmail} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"><FiMail className="h-5 w-5" /><span>Send Email</span>
+                                </button>
+                                {showEmailComposer && (
+                                    <EmailComposer
+                                        leads={selectedLeadsForEmail}
+                                        onClose={() => setShowEmailComposer(false)}
+                                        onSuccess={() => {
+                                            setShowEmailComposer(false);
+                                            toast.success('Email(s) sent successfully');
+                                        }}
+                                    />
+                                )}
                             </div>
                         </div>
                         

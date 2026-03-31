@@ -1,4 +1,3 @@
-// src/services/api.js
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -50,10 +49,18 @@ api.interceptors.response.use(
     } else if (error.response) {
       if (error.response.status === 401) {
         localStorage.removeItem("userInfo");
-        if (!window.location.pathname.includes("/login")) {
+        if (
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.includes("/verify-email")
+        ) {
           window.location.href = "/login";
         }
-        toast.error("Session expired. Please login again.");
+        if (!error.config.url.includes("/auth/me")) {
+          toast.error(
+            error.response.data?.message ||
+              "Session expired. Please login again.",
+          );
+        }
       } else {
         const message = error.response.data?.message || "An error occurred";
         toast.error(message);

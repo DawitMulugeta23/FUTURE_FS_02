@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import md5 from "md5";
 import { useEffect, useState } from "react";
 import { FiBriefcase, FiCalendar, FiMail, FiPhone } from "react-icons/fi";
-
+import { FiMail, FiBriefcase, FiCalendar, FiMail as FiMailIcon, FiPhone } from "react-icons/fi";
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
   contacted:
@@ -15,7 +15,7 @@ const statusColors = {
   lost: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
 };
 
-const LeadCard = ({ lead, onClick }) => {
+const LeadCard = ({ lead, onClick, onSendEmail }) => {
   const [gravatarUrl, setGravatarUrl] = useState("");
 
   useEffect(() => {
@@ -28,6 +28,7 @@ const LeadCard = ({ lead, onClick }) => {
   }, [lead]);
 
   return (
+    
     <div
       onClick={() => onClick(lead)}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-gray-100 dark:border-gray-700 overflow-hidden"
@@ -37,6 +38,17 @@ const LeadCard = ({ lead, onClick }) => {
           {/* Lead Avatar from Gravatar */}
           <div className="flex-shrink-0">
             <div className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600">
+
+            <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSendEmail(lead);
+                        }}
+                        className="text-primary-600 hover:text-primary-700 flex items-center space-x-1 text-sm"
+                    >
+                        <FiMail className="h-4 w-4" />
+                        <span>Send Email</span>
+                    </button>
               {gravatarUrl ? (
                 <img
                   src={gravatarUrl}
