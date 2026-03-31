@@ -27,27 +27,44 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const payload = {
+            name: formData.name.trim(),
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+        };
+
+        if (!payload.name || !payload.email || !payload.password) {
+            toast.error('Please fill in all required fields');
+            return;
+        }
         
-        if (formData.password !== formData.confirmPassword) {
+        if (payload.password !== formData.confirmPassword) {
             toast.error('Passwords do not match');
             return;
         }
         
         setLoading(true);
         try {
-            const result = await dispatch(register({
-                name: formData.name,
-                email: formData.email,
-                password: formData.password
-            })).unwrap();
+            const result = await dispatch(register(payload)).unwrap();
             
-            if (result) {
+            if (result?.token || result?._id || result?.id) {
                 toast.success('Registration successful!');
+                setFormData({
+                    name: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: ''
+                });
                 navigate('/dashboard');
+                return;
             }
+
+            throw new Error('Registration succeeded but no user data was returned.');
         } catch (error) {
+            const message = typeof error === 'string' ? error : error?.message || 'Registration failed. Please try again.';
             console.error('Registration error:', error);
-            toast.error(error || 'Registration failed. Please try again.');
+            toast.error(message);
         } finally {
             setLoading(false);
         }

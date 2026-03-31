@@ -1,21 +1,46 @@
 // src/services/authService.js
 import api from "./api";
 
+const extractAuthData = (payload) => {
+  if (!payload) {
+    return null;
+  }
+
+  if (payload.data) {
+    return payload.data;
+  }
+
+  if (payload.user || payload.token) {
+    return {
+      ...(payload.user || {}),
+      token: payload.token,
+    };
+  }
+
+  return payload;
+};
+
 const authService = {
   async register(userData) {
     const response = await api.post("/auth/register", userData);
-    if (response.data.success) {
-      localStorage.setItem("userInfo", JSON.stringify(response.data.data));
+    const authData = extractAuthData(response.data);
+
+    if (response.data?.success && authData) {
+      localStorage.setItem("userInfo", JSON.stringify(authData));
     }
-    return response.data;
+
+    return authData;
   },
 
   async login(credentials) {
     const response = await api.post("/auth/login", credentials);
-    if (response.data.success) {
-      localStorage.setItem("userInfo", JSON.stringify(response.data.data));
+    const authData = extractAuthData(response.data);
+
+    if (response.data?.success && authData) {
+      localStorage.setItem("userInfo", JSON.stringify(authData));
     }
-    return response.data;
+
+    return authData;
   },
 
   async getProfile() {
