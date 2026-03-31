@@ -205,19 +205,9 @@ const Settings = () => {
 
   const tabs = [
     { id: "profile", name: "Profile", icon: FiUser, color: "blue" },
-    {
-      id: "notifications",
-      name: "Notifications",
-      icon: FiBell,
-      color: "yellow",
-    },
+    { id: "notifications", name: "Notifications", icon: FiBell, color: "yellow" },
     { id: "appearance", name: "Appearance", icon: FiMoon, color: "indigo" },
-    {
-      id: "privacy",
-      name: "Privacy & Security",
-      icon: FiShield,
-      color: "green",
-    },
+    { id: "privacy", name: "Privacy & Security", icon: FiShield, color: "green" },
     { id: "data", name: "Data Management", icon: FiDatabase, color: "orange" },
   ];
 

@@ -1,4 +1,4 @@
-// src/components/Layout/Navbar.jsx (updated - removed voice features)
+// src/components/Layout/Navbar.jsx
 import { FiBarChart2 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "../Profile/ProfileDropdown";

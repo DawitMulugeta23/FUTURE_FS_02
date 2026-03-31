@@ -1,15 +1,14 @@
 // src/App.jsx
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { Provider, useDispatch, useSelector } from "react-redux";
+import { Provider, useSelector } from "react-redux";
 import {
   Navigate,
   Route,
   BrowserRouter as Router,
   Routes,
-  useLocation,
 } from "react-router-dom";
-import Login from "./components/Auth/Login"; // Change from VoiceLogin to regular Login
+import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
@@ -32,11 +31,9 @@ const PublicRoute = ({ children }) => {
 
 // Main App Content
 function AppContent() {
-  const dispatch = useDispatch();
   const { theme, fontSize, highContrast, reduceMotion } = useSelector(
     (state) => state.ui,
   );
-  const location = useLocation();
 
   // Apply theme and accessibility settings
   useEffect(() => {

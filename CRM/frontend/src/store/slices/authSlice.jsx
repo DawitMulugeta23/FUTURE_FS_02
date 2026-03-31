@@ -27,10 +27,30 @@ export const login = createAsyncThunk(
     }
 );
 
+const getStoredUser = () => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    try {
+        const userInfo = localStorage.getItem('userInfo');
+
+        if (!userInfo || userInfo === 'undefined' || userInfo === 'null') {
+            return null;
+        }
+
+        return JSON.parse(userInfo);
+    } catch (error) {
+        console.warn('Invalid stored user info removed:', error);
+        localStorage.removeItem('userInfo');
+        return null;
+    }
+};
+
 const authSlice = createSlice({
     name: 'auth',
     initialState: {
-        user: JSON.parse(localStorage.getItem('userInfo')) || null,
+        user: getStoredUser(),
         loading: false,
         error: null
     },
