@@ -1,8 +1,6 @@
-// backend/controllers/authController.js
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
-// backend/controllers/authController.js (ensure proper error handling)
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -76,9 +74,6 @@ const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -130,9 +125,6 @@ const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
