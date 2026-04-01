@@ -28,6 +28,7 @@ import Navbar from "../components/Layout/Navbar";
 import Sidebar from "../components/Layout/Sidebar";
 import { fetchAnalytics } from "../store/slices/leadSlice";
 
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -41,7 +42,7 @@ ChartJS.register(
 const Analytics = () => {
   const dispatch = useDispatch();
   const { analytics, loading } = useSelector((state) => state.leads);
-  const [timeRange, setTimeRange] = useState("30days");
+  const [timeRange, setTimeRange] = useState("all");
   const [chartType, setChartType] = useState("bar");
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
@@ -131,6 +132,7 @@ const Analytics = () => {
     );
   }
 
+  // Prepare data for charts - ensure we have valid numbers
   const statusData = {
     labels: ["New", "Contacted", "Qualified", "Converted", "Lost"],
     datasets: [
@@ -164,8 +166,10 @@ const Analytics = () => {
 
   const sourceData = {
     labels:
-      analytics?.bySource?.map((s) => s._id?.replace(/_/g, " ") || "Unknown") ||
-      [],
+      analytics?.bySource?.map((s) => {
+        const label = s._id?.replace(/_/g, " ") || "Unknown";
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      }) || [],
     datasets: [
       {
         data: analytics?.bySource?.map((s) => s.count) || [],
@@ -176,8 +180,11 @@ const Analytics = () => {
           "rgba(139, 92, 246, 0.8)",
           "rgba(236, 72, 153, 0.8)",
           "rgba(249, 115, 22, 0.8)",
+          "rgba(168, 85, 247, 0.8)",
+          "rgba(14, 165, 233, 0.8)",
         ],
         borderWidth: 1,
+        borderColor: "#fff",
       },
     ],
   };
@@ -192,9 +199,14 @@ const Analytics = () => {
           color: document.documentElement.classList.contains("dark")
             ? "#fff"
             : "#374151",
+          font: { size: 12 },
         },
       },
-      tooltip: { callbacks: { label: (context) => `${context.raw} leads` } },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.raw} leads`,
+        },
+      },
     },
     scales: {
       y: {
@@ -208,6 +220,14 @@ const Analytics = () => {
           color: document.documentElement.classList.contains("dark")
             ? "#fff"
             : "#374151",
+          stepSize: 1,
+        },
+        title: {
+          display: true,
+          text: "Number of Leads",
+          color: document.documentElement.classList.contains("dark")
+            ? "#9ca3af"
+            : "#6b7280",
         },
       },
       x: {
@@ -216,6 +236,13 @@ const Analytics = () => {
           color: document.documentElement.classList.contains("dark")
             ? "#fff"
             : "#374151",
+        },
+        title: {
+          display: true,
+          text: "Lead Status",
+          color: document.documentElement.classList.contains("dark")
+            ? "#9ca3af"
+            : "#6b7280",
         },
       },
     },
@@ -226,11 +253,25 @@ const Analytics = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: "right",
+        position: "bottom",
         labels: {
           color: document.documentElement.classList.contains("dark")
             ? "#fff"
             : "#374151",
+          font: { size: 12 },
+          padding: 20,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || "";
+            const value = context.raw || 0;
+            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+            const percentage =
+              total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+            return `${label}: ${value} leads (${percentage}%)`;
+          },
         },
       },
     },
@@ -243,7 +284,7 @@ const Analytics = () => {
         <Sidebar />
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
                   <FiPieChart className="mr-3 h-8 w-8 text-primary-600" />
@@ -256,7 +297,7 @@ const Analytics = () => {
                   Last updated: {lastUpdated.toLocaleTimeString()}
                 </p>
               </div>
-              <div className="flex space-x-3">
+              <div className="flex flex-wrap gap-3">
                 <select
                   value={timeRange}
                   onChange={handleTimeRangeChange}
@@ -287,7 +328,8 @@ const Analytics = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard
                 title="Total Leads"
                 value={analytics?.total || 0}
@@ -318,7 +360,9 @@ const Analytics = () => {
               />
             </div>
 
+            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Status Distribution */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -328,13 +372,23 @@ const Analytics = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => setChartType("bar")}
-                      className={`p-2 rounded-lg transition-colors ${chartType === "bar" ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                      className={`p-2 rounded-lg transition-colors ${
+                        chartType === "bar"
+                          ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                      title="Bar Chart"
                     >
                       <FiBarChart2 className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => setChartType("pie")}
-                      className={`p-2 rounded-lg transition-colors ${chartType === "pie" ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                      className={`p-2 rounded-lg transition-colors ${
+                        chartType === "pie"
+                          ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                      title="Pie Chart"
                     >
                       <FiPieChart className="h-5 w-5" />
                     </button>
@@ -349,7 +403,7 @@ const Analytics = () => {
                     )
                   ) : (
                     <div className="h-full flex items-center justify-center">
-                      <p className="text-gray-500 dark:text-gray-400">
+                      <p className="text-gray-500 dark:text-gray-400 text-center">
                         No data available. Add some leads to see analytics.
                       </p>
                     </div>
@@ -357,6 +411,7 @@ const Analytics = () => {
                 </div>
               </div>
 
+              {/* Source Distribution */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                   <FiActivity className="mr-2 h-5 w-5 text-primary-600" />
@@ -367,8 +422,9 @@ const Analytics = () => {
                     <Pie data={sourceData} options={pieOptions} />
                   ) : (
                     <div className="h-full flex items-center justify-center">
-                      <p className="text-gray-500 dark:text-gray-400">
-                        No source data available.
+                      <p className="text-gray-500 dark:text-gray-400 text-center">
+                        No source data available. Add leads with different
+                        sources.
                       </p>
                     </div>
                   )}
@@ -376,6 +432,7 @@ const Analytics = () => {
               </div>
             </div>
 
+            {/* Detailed Statistics Table */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <FiCalendar className="mr-2 h-5 w-5 text-primary-600" />
@@ -394,61 +451,121 @@ const Analytics = () => {
                       <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
                         Percentage
                       </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Visualization
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(analytics?.byStatus || {}).map(
-                      ([status, count]) => (
+                    {[
+                      { key: "new", label: "New", color: "bg-blue-500" },
+                      {
+                        key: "contacted",
+                        label: "Contacted",
+                        color: "bg-yellow-500",
+                      },
+                      {
+                        key: "qualified",
+                        label: "Qualified",
+                        color: "bg-purple-500",
+                      },
+                      {
+                        key: "converted",
+                        label: "Converted",
+                        color: "bg-green-500",
+                      },
+                      { key: "lost", label: "Lost", color: "bg-red-500" },
+                    ].map((status) => {
+                      const count = analytics?.byStatus?.[status.key] || 0;
+                      const percentage = analytics?.total
+                        ? ((count / analytics.total) * 100).toFixed(1)
+                        : 0;
+                      return (
                         <tr
-                          key={status}
+                          key={status.key}
                           className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                         >
-                          <td className="py-3 px-4 text-gray-900 dark:text-white capitalize">
-                            {status}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center">
+                              <div
+                                className={`w-3 h-3 rounded-full ${status.color} mr-2`}
+                              ></div>
+                              <span className="text-gray-900 dark:text-white capitalize">
+                                {status.label}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">
                             {count}
                           </td>
                           <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
-                            {analytics?.total
-                              ? ((count / analytics.total) * 100).toFixed(1)
-                              : 0}
-                            %
+                            {percentage}%
+                          </td>
+                          <td className="py-3 px-4 w-48">
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full ${status.color}`}
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
                           </td>
                         </tr>
-                      ),
-                    )}
+                      );
+                    })}
                   </tbody>
+                  <tfoot className="border-t dark:border-gray-700">
+                    <tr>
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">
+                        Total
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">
+                        {analytics?.total || 0}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">
+                        100%
+                      </td>
+                      <td className="py-3 px-4"></td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
 
+              {/* Source Breakdown Cards */}
               {analytics?.bySource?.length > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
                     Source Breakdown
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {analytics.bySource.map((source) => (
-                      <div
-                        key={source._id}
-                        className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg"
-                      >
-                        <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                          {source._id?.replace(/_/g, " ") || "Unknown"}
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {source.count}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
-                          {analytics.total
-                            ? ((source.count / analytics.total) * 100).toFixed(
-                                1,
-                              )
-                            : 0}
-                          % of total
-                        </p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {analytics.bySource.map((source) => {
+                      const percentage = analytics.total
+                        ? ((source.count / analytics.total) * 100).toFixed(1)
+                        : 0;
+                      return (
+                        <div
+                          key={source._id}
+                          className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg"
+                        >
+                          <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-1">
+                            {source._id?.replace(/_/g, " ") || "Unknown"}
+                          </p>
+                          <div className="flex items-baseline justify-between">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {source.count}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-500">
+                              {percentage}% of total
+                            </p>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-2">
+                            <div
+                              className="bg-primary-600 h-1.5 rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

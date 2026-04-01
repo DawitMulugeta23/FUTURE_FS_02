@@ -1,53 +1,55 @@
 // src/pages/Help.jsx
 import { motion } from "framer-motion";
-import {
-  FiCommand,
-  FiHelpCircle,
-  FiMic,
-  FiSettings,
-  FiUser,
-  FiVolume2,
-} from "react-icons/fi";
+import { FiHelpCircle, FiSettings, FiUser } from "react-icons/fi";
 import Navbar from "../components/Layout/Navbar";
 import Sidebar from "../components/Layout/Sidebar";
 
 const Help = () => {
-  const voiceCommands = [
-    { command: "Hey CRM", description: "Activate voice mode" },
-    { command: "Go to dashboard", description: "Navigate to dashboard" },
-    { command: "Go to leads", description: "Open leads page" },
-    { command: "Go to analytics", description: "View analytics" },
-    { command: "Go to settings", description: "Open settings" },
-    { command: "Dark mode", description: "Switch to dark theme" },
-    { command: "Light mode", description: "Switch to light theme" },
-    { command: "Create lead", description: "Add new lead" },
-    { command: "Search for [term]", description: "Search leads" },
-    { command: "My profile", description: "View profile" },
-    { command: "Logout", description: "Sign out" },
-    { command: "Stop listening", description: "Deactivate voice mode" },
-    { command: "Help", description: "Show this help page" },
-  ];
-
   const faqs = [
-    {
-      question: "How do I activate voice mode?",
-      answer:
-        "Click the voice icon in the navbar or say 'Hey CRM' when voice mode is enabled.",
-    },
     {
       question: "How do I change my profile picture?",
       answer:
         "Click on your profile picture in the navbar, then click on it again in the dropdown to upload a new photo or use Gravatar.",
     },
     {
-      question: "What voice commands are available?",
+      question: "How do I update my profile information?",
       answer:
-        "You can use commands for navigation, theme switching, lead management, and more. Check the voice commands list below.",
+        "Go to Settings > Profile to update your name, email, phone number, company details, and other personal information.",
     },
     {
-      question: "How do I customize voice settings?",
+      question: "How do I manage my leads?",
       answer:
-        "Go to Settings > Voice Settings or click on the voice menu in the profile dropdown.",
+        "You can manage leads from the Leads page. You can add new leads, edit existing ones, update their status, add notes, and delete leads as needed.",
+    },
+    {
+      question: "How do I track lead analytics?",
+      answer:
+        "The Analytics dashboard shows key metrics like total leads, conversion rates, lead distribution by status, and source breakdown. You can also export analytics data as CSV.",
+    },
+    {
+      question: "How do I change the theme?",
+      answer:
+        "Click on your profile picture in the navbar, then use the theme toggle switch to switch between Light and Dark mode.",
+    },
+    {
+      question: "How do I adjust notification settings?",
+      answer:
+        "Go to Settings > Notifications to customize which notifications you receive, including email, push, and system notifications.",
+    },
+  ];
+
+  const quickGuides = [
+    {
+      icon: FiUser,
+      title: "Profile Settings",
+      description: "Manage your account and profile photo",
+      color: "bg-gradient-to-br from-purple-500 to-purple-600",
+    },
+    {
+      icon: FiSettings,
+      title: "Customize",
+      description: "Adjust settings to your needs",
+      color: "bg-gradient-to-br from-green-500 to-green-600",
     },
   ];
 
@@ -69,42 +71,34 @@ const Help = () => {
                 Help & Support
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Learn how to use the CRM system and its voice features
+                Learn how to use the CRM system effectively
               </p>
             </motion.div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl p-6 text-white"
-              >
-                <FiMic className="h-8 w-8 mb-3" />
-                <h3 className="font-semibold text-lg">Voice Commands</h3>
-                <p className="text-sm text-white/80">
-                  Control the CRM with your voice
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white"
-              >
-                <FiUser className="h-8 w-8 mb-3" />
-                <h3 className="font-semibold text-lg">Profile Settings</h3>
-                <p className="text-sm text-white/80">
-                  Manage your account and photo
-                </p>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white"
-              >
-                <FiSettings className="h-8 w-8 mb-3" />
-                <h3 className="font-semibold text-lg">Customize</h3>
-                <p className="text-sm text-white/80">
-                  Adjust settings to your needs
-                </p>
-              </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              {quickGuides.map((guide, index) => {
+                const Icon = guide.icon;
+                return (
+                  <motion.div
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    className={`${guide.color} rounded-xl p-6 text-white cursor-pointer`}
+                    onClick={() => {
+                      // Navigate to settings with appropriate tab
+                      if (guide.title === "Profile Settings") {
+                        window.location.href = "/settings?tab=profile";
+                      } else if (guide.title === "Customize") {
+                        window.location.href = "/settings?tab=appearance";
+                      }
+                    }}
+                  >
+                    <Icon className="h-8 w-8 mb-3" />
+                    <h3 className="font-semibold text-lg">{guide.title}</h3>
+                    <p className="text-sm text-white/80">{guide.description}</p>
+                  </motion.div>
+                );
+              })}
             </div>
 
             {/* FAQs */}
@@ -117,7 +111,7 @@ const Help = () => {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                 Frequently Asked Questions
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {faqs.map((faq, index) => (
                   <div
                     key={index}
@@ -134,36 +128,63 @@ const Help = () => {
               </div>
             </motion.div>
 
-            {/* Voice Commands List */}
+            {/* Keyboard Shortcuts */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
             >
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <FiCommand className="mr-2 h-5 w-5 text-primary-500" />
-                Voice Commands
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Keyboard Shortcuts
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {voiceCommands.map((cmd, index) => (
+                {[
+                  { keys: ["Ctrl", "K"], description: "Search leads" },
+                  { keys: ["Ctrl", "N"], description: "Create new lead" },
+                  { keys: ["Ctrl", "D"], description: "Go to dashboard" },
+                  { keys: ["Ctrl", "L"], description: "Go to leads" },
+                  { keys: ["Ctrl", "A"], description: "Go to analytics" },
+                  { keys: ["Ctrl", "S"], description: "Go to settings" },
+                  { keys: ["Esc"], description: "Close modal" },
+                  { keys: ["?"], description: "Show this help" },
+                ].map((shortcut, index) => (
                   <div
                     key={index}
-                    className="flex items-start space-x-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <FiVolume2 className="h-4 w-4 text-primary-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        "{cmd.command}"
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {cmd.description}
-                      </p>
+                    <div className="flex items-center space-x-2">
+                      {shortcut.keys.map((key, i) => (
+                        <span key={i}>
+                          <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-600 rounded text-sm font-mono text-gray-800 dark:text-gray-200">
+                            {key}
+                          </kbd>
+                          {i < shortcut.keys.length - 1 && (
+                            <span className="mx-1 text-gray-500">+</span>
+                          )}
+                        </span>
+                      ))}
                     </div>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {shortcut.description}
+                    </span>
                   </div>
                 ))}
               </div>
             </motion.div>
+
+            {/* Need More Help */}
+            <div className="mt-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                Still need help?{" "}
+                <a
+                  href="mailto:support@crm.com"
+                  className="text-primary-600 hover:text-primary-700 dark:text-primary-400 font-medium"
+                >
+                  Contact our support team
+                </a>
+              </p>
+            </div>
           </div>
         </main>
       </div>

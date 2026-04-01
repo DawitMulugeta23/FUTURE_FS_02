@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -8,7 +9,7 @@ const colors = require('colors');
 // Load env vars from parent directory (backend folder)
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-// Import database connection - note the paths are relative to src folder
+// Import database connection
 const connectDB = require('./config/db');
 
 // Import routes

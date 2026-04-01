@@ -1,128 +1,9 @@
+// backend/src/controllers/leadController.js
 const Lead = require('../models/Lead');
-const nodemailer = require('nodemailer');
+const Activity = require('../models/Activity'); // Add this import
 
-// Add this email configuration after imports
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-// @desc    Send email to lead
-// @route   POST /api/leads/:id/email
-// @access  Private
-const sendEmailToLead = async (req, res) => {
-  try {
-    const lead = await Lead.findById(req.params.id);
-    
-    if (!lead) {
-      return res.status(404).json({
-        success: false,
-        message: 'Lead not found'
-      });
-    }
-
-    // Check if user owns the lead or is admin
-    if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to email this lead'
-      });
-    }
-
-    const { subject, message } = req.body;
-    
-    if (!subject || !message) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide subject and message'
-      });
-    }
-
-    // Send email
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: lead.email,
-      subject: subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #4f46e5;">CRM System</h2>
-          <p>Hello ${lead.firstName} ${lead.lastName},</p>
-          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            ${message.replace(/\n/g, '<br/>')}
-          </div>
-          <p style="color: #6b7280; font-size: 12px;">This email was sent from the CRM System.</p>
-        </div>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    // Add activity record
-    await Activity.create({
-      leadId: lead._id,
-      userId: req.user.id,
-      type: 'email',
-      title: `Email sent: ${subject}`,
-      description: message.substring(0, 200),
-      outcome: 'positive',
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Email sent successfully'
-    });
-  } catch (error) {
-    console.error('Error in sendEmailToLead:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Server error while sending email'
-    });
-  }
-};
-
-// @desc    Get email replies (webhook endpoint)
-// @route   POST /api/leads/email/webhook
-// @access  Public
-const handleEmailWebhook = async (req, res) => {
-  try {
-    const { email, subject, message, from } = req.body;
-    
-    // Find lead by email
-    const lead = await Lead.findOne({ email: from });
-    
-    if (lead) {
-      // Add reply as a note
-      lead.notes.push({
-        content: `Email Reply: ${subject}\n\n${message}`,
-        createdBy: lead.createdBy,
-        createdAt: Date.now()
-      });
-      await lead.save();
-      
-      // Add activity
-      await Activity.create({
-        leadId: lead._id,
-        userId: lead.createdBy,
-        type: 'email',
-        title: `Email reply received: ${subject}`,
-        description: message.substring(0, 200),
-        outcome: 'positive',
-      });
-    }
-    
-    res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('Error in handleEmailWebhook:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// Update module.exports to include new functions
+// @desc    Get all leads
+// @route   GET /api/leads
 // @access  Private
 const getLeads = async (req, res) => {
     try {
@@ -154,7 +35,7 @@ const getLeads = async (req, res) => {
         const skip = (pageNum - 1) * limitNum;
         
         // Sorting
-        let sortOption = { createdAt: -1 }; // Default: newest first
+        let sortOption = { createdAt: -1 };
         if (sort === 'oldest') {
             sortOption = { createdAt: 1 };
         } else if (sort === 'name') {
@@ -265,12 +146,22 @@ const createLead = async (req, res) => {
             status: 'new',
             createdBy: req.user.id,
             notes: [],
-            convertedAt: null // Initialize as null
+            convertedAt: null
         };
         
         console.log('Creating lead with data:', leadData);
         
         const lead = await Lead.create(leadData);
+        
+        // Add activity for lead creation
+        await Activity.create({
+            leadId: lead._id,
+            userId: req.user.id,
+            type: 'note',
+            title: 'Lead created',
+            description: `Lead ${firstName} ${lastName} was created`,
+            outcome: 'positive'
+        });
         
         // Populate the createdBy field
         const populatedLead = await Lead.findById(lead._id)
@@ -323,6 +214,8 @@ const updateLead = async (req, res) => {
             });
         }
         
+        const oldStatus = lead.status;
+        
         // Update fields
         const fieldsToUpdate = ['firstName', 'lastName', 'email', 'phone', 'company', 'source', 'status'];
         fieldsToUpdate.forEach(field => {
@@ -331,16 +224,28 @@ const updateLead = async (req, res) => {
             }
         });
         
-        // Handle convertedAt logic in controller instead of middleware
+        // Handle convertedAt logic
         if (req.body.status === 'converted' && lead.status !== 'converted') {
             lead.convertedAt = Date.now();
         } else if (req.body.status && req.body.status !== 'converted' && lead.status === 'converted') {
-            // If changing from converted to another status, you might want to clear convertedAt
-            // Uncomment the next line if you want this behavior
+            // Optionally clear convertedAt when changing from converted
             // lead.convertedAt = null;
         }
         
         await lead.save();
+        
+        // Add activity for status change if status changed
+        if (oldStatus !== lead.status) {
+            await Activity.create({
+                leadId: lead._id,
+                userId: req.user.id,
+                type: 'status_change',
+                title: 'Status changed',
+                description: `Lead status changed from ${oldStatus} to ${lead.status}`,
+                metadata: { oldStatus, newStatus: lead.status },
+                outcome: lead.status === 'converted' ? 'positive' : 'neutral'
+            });
+        }
         
         // Populate the updated lead
         const updatedLead = await Lead.findById(lead._id)
@@ -382,6 +287,9 @@ const deleteLead = async (req, res) => {
                 message: 'Not authorized to delete this lead'
             });
         }
+        
+        // Delete associated activities
+        await Activity.deleteMany({ leadId: lead._id });
         
         await lead.deleteOne();
         
@@ -435,6 +343,16 @@ const addNote = async (req, res) => {
         
         await lead.save();
         
+        // Add activity for note
+        await Activity.create({
+            leadId: lead._id,
+            userId: req.user.id,
+            type: 'note',
+            title: 'Note added',
+            description: req.body.content.substring(0, 200),
+            outcome: 'neutral'
+        });
+        
         const updatedLead = await Lead.findById(req.params.id)
             .populate('notes.createdBy', 'name');
         
@@ -452,10 +370,11 @@ const addNote = async (req, res) => {
     }
 };
 
+// @desc    Get analytics
+// @route   GET /api/leads/analytics
 // @access  Private
 const getAnalytics = async (req, res) => {
     try {
-        // Get analytics only for current user's leads
         const userId = req.user.id;
         const { range } = req.query;
         
@@ -466,7 +385,6 @@ const getAnalytics = async (req, res) => {
         let baseQuery = { createdBy: userId };
         
         // Add date filter based on range
-        let recentDateFilter = {};
         let dateFilter = {};
         
         const now = new Date();
@@ -477,71 +395,38 @@ const getAnalytics = async (req, res) => {
                 startDate = new Date();
                 startDate.setDate(startDate.getDate() - 7);
                 dateFilter = { createdAt: { $gte: startDate } };
-                recentDateFilter = { createdAt: { $gte: startDate } };
                 break;
             case '30days':
                 startDate = new Date();
                 startDate.setDate(startDate.getDate() - 30);
                 dateFilter = { createdAt: { $gte: startDate } };
-                recentDateFilter = { createdAt: { $gte: startDate } };
                 break;
             case '90days':
                 startDate = new Date();
                 startDate.setDate(startDate.getDate() - 90);
                 dateFilter = { createdAt: { $gte: startDate } };
-                recentDateFilter = { createdAt: { $gte: startDate } };
                 break;
             case 'year':
                 startDate = new Date();
                 startDate.setFullYear(startDate.getFullYear() - 1);
                 dateFilter = { createdAt: { $gte: startDate } };
-                recentDateFilter = { createdAt: { $gte: startDate } };
                 break;
             case 'all':
             default:
-                // No date filter for 'all'
                 dateFilter = {};
-                // For recent (30 days), still use 30 days
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                recentDateFilter = { createdAt: { $gte: thirtyDaysAgo } };
                 break;
         }
         
-        // Apply date filter for total count
+        // Apply date filter
         const queryWithDate = { ...baseQuery, ...dateFilter };
         
-        const totalLeads = await Lead.countDocuments(queryWithDate);
+        // Get all leads for the user in the date range
+        const allLeads = await Lead.find(queryWithDate);
+        const totalLeads = allLeads.length;
         console.log('Total leads in period:', totalLeads);
         
-        const leadsByStatus = await Lead.aggregate([
-            { $match: queryWithDate },
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ]);
-        console.log('Leads by status:', leadsByStatus);
-        
-        const leadsBySource = await Lead.aggregate([
-            { $match: queryWithDate },
-            { $group: { _id: '$source', count: { $sum: 1 } } }
-        ]);
-        console.log('Leads by source:', leadsBySource);
-        
-        // Leads created in last 30 days (for the recent metric)
-        const recentLeads = await Lead.countDocuments({
-            createdBy: userId,
-            ...recentDateFilter
-        });
-        console.log('Recent leads:', recentLeads);
-        
-        // Conversion rate (only for leads that are converted in the period)
-        const convertedLeads = await Lead.countDocuments({ 
-            ...queryWithDate,
-            status: 'converted' 
-        });
-        const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-        
-        // Create status map with all statuses
-        const statusMap = {
+        // Count leads by status
+        const statusCounts = {
             new: 0,
             contacted: 0,
             qualified: 0,
@@ -549,18 +434,42 @@ const getAnalytics = async (req, res) => {
             lost: 0
         };
         
-        // Update with actual counts
-        leadsByStatus.forEach(item => {
-            if (item._id && statusMap.hasOwnProperty(item._id)) {
-                statusMap[item._id] = item.count;
+        allLeads.forEach(lead => {
+            if (statusCounts.hasOwnProperty(lead.status)) {
+                statusCounts[lead.status]++;
             }
         });
+        
+        console.log('Leads by status:', statusCounts);
+        
+        // Count leads by source
+        const sourceMap = {};
+        allLeads.forEach(lead => {
+            const source = lead.source || 'other';
+            sourceMap[source] = (sourceMap[source] || 0) + 1;
+        });
+        
+        const leadsBySource = Object.entries(sourceMap).map(([id, count]) => ({ _id: id, count }));
+        console.log('Leads by source:', leadsBySource);
+        
+        // Recent leads (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentLeads = await Lead.countDocuments({
+            createdBy: userId,
+            createdAt: { $gte: thirtyDaysAgo }
+        });
+        console.log('Recent leads:', recentLeads);
+        
+        // Conversion rate
+        const convertedLeads = statusCounts.converted;
+        const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
         
         const responseData = {
             total: totalLeads,
             recent: recentLeads,
             conversionRate: conversionRate.toFixed(1),
-            byStatus: statusMap,
+            byStatus: statusCounts,
             bySource: leadsBySource
         };
         
@@ -576,6 +485,129 @@ const getAnalytics = async (req, res) => {
             success: false,
             message: error.message || 'Server error while fetching analytics'
         });
+    }
+};
+
+// @desc    Send email to lead
+// @route   POST /api/leads/:id/email
+// @access  Private
+const sendEmailToLead = async (req, res) => {
+    try {
+        const nodemailer = require('nodemailer');
+        
+        const lead = await Lead.findById(req.params.id);
+        
+        if (!lead) {
+            return res.status(404).json({
+                success: false,
+                message: 'Lead not found'
+            });
+        }
+
+        // Check if user owns the lead or is admin
+        if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to email this lead'
+            });
+        }
+
+        const { subject, message } = req.body;
+        
+        if (!subject || !message) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide subject and message'
+            });
+        }
+
+        // Create transporter
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: process.env.SMTP_PORT,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
+
+        // Send email
+        const mailOptions = {
+            from: process.env.EMAIL_FROM,
+            to: lead.email,
+            subject: subject,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #4f46e5;">CRM System</h2>
+                    <p>Hello ${lead.firstName} ${lead.lastName},</p>
+                    <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        ${message.replace(/\n/g, '<br/>')}
+                    </div>
+                    <p style="color: #6b7280; font-size: 12px;">This email was sent from the CRM System.</p>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        // Add activity record
+        await Activity.create({
+            leadId: lead._id,
+            userId: req.user.id,
+            type: 'email',
+            title: `Email sent: ${subject}`,
+            description: message.substring(0, 200),
+            outcome: 'positive',
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Email sent successfully'
+        });
+    } catch (error) {
+        console.error('Error in sendEmailToLead:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while sending email'
+        });
+    }
+};
+
+// @desc    Get email replies (webhook endpoint)
+// @route   POST /api/leads/email/webhook
+// @access  Public
+const handleEmailWebhook = async (req, res) => {
+    try {
+        const { email, subject, message, from } = req.body;
+        
+        // Find lead by email
+        const lead = await Lead.findOne({ email: from });
+        
+        if (lead) {
+            // Add reply as a note
+            lead.notes.push({
+                content: `Email Reply: ${subject}\n\n${message}`,
+                createdBy: lead.createdBy,
+                createdAt: Date.now()
+            });
+            await lead.save();
+            
+            // Add activity
+            await Activity.create({
+                leadId: lead._id,
+                userId: lead.createdBy,
+                type: 'email',
+                title: `Email reply received: ${subject}`,
+                description: message.substring(0, 200),
+                outcome: 'positive',
+            });
+        }
+        
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error in handleEmailWebhook:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
