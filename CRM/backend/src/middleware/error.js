@@ -1,4 +1,4 @@
-// backend/middleware/error.js
+// backend/src/middleware/error.js
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
   error.message = err.message;

@@ -1,4 +1,4 @@
-// backend/middleware/auth.js
+// backend/src/middleware/auth.js
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
@@ -20,23 +20,26 @@ const protect = async (req, res, next) => {
       req.user = await User.findById(decoded.id).select("-password");
 
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ success: false, message: "User not found" });
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+        });
       }
 
       next();
     } catch (error) {
       console.error(error);
-      return res
-        .status(401)
-        .json({ success: false, message: "Not authorized" });
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized",
+      });
     }
   } else {
     if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Not authorized, no token" });
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized, no token",
+      });
     }
   }
 };
