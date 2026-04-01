@@ -5,6 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const colors = require('colors');
+// const User = require("../models/User");
 
 // Load env vars from parent directory (backend folder)
 dotenv.config({ path: path.join(__dirname, '..', '.env') });

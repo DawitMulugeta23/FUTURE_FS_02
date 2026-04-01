@@ -1,3 +1,4 @@
+// backend/controllers/authController.js
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
@@ -23,7 +24,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user - password will be hashed by the pre-save middleware
     const user = await User.create({
       name,
       email,
