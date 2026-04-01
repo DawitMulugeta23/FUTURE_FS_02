@@ -1,4 +1,3 @@
-// backend/src/routes/leadRoutes.js
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
@@ -9,11 +8,14 @@ const {
     updateLead,
     deleteLead,
     addNote,
-    getAnalytics
+    getAnalytics,
+    sendEmailToLead,
+    handleEmailWebhook
 } = require('../controllers/leadController');
 const { validate, leadSchema, noteSchema } = require('../utils/validation');
 
-// Protect all routes
+router.post('/email/webhook', handleEmailWebhook);
+
 router.use(protect);
 
 router.route('/')
@@ -28,5 +30,6 @@ router.route('/:id')
     .delete(deleteLead);
 
 router.post('/:id/notes', validate(noteSchema), addNote);
+router.post('/:id/email', sendEmailToLead);
 
 module.exports = router;

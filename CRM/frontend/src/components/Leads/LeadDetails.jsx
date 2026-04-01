@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import leadService from '../../services/leadService';
 import toast from 'react-hot-toast';
 import LeadForm from './LeadForm';
+import EmailModal from './EmailModal';
 
 const statusColors = {
     new: 'bg-blue-100 text-blue-800',
@@ -19,6 +20,7 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
     const [loading, setLoading] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
 
     const handleAddNote = async (e) => {
         e.preventDefault();
@@ -107,6 +109,22 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
                                 >
                                     <FiTrash2 className="h-5 w-5" />
                                 </button>
+                                <button
+                                    onClick={() => setShowEmailModal(true)}
+                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                    title="Send Email"
+                                >
+                                    <FiMail className="h-5 w-5" />
+                                </button>
+                                {showEmailModal && (
+                                    <EmailModal
+                                        lead={lead}
+                                        onClose={() => setShowEmailModal(false)}
+                                        onSuccess={()=>{
+                                            onUpdate();
+                                        }}
+                                    />
+                                )}
                             </div>
                         </div>
                         

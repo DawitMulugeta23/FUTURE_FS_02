@@ -1,5 +1,4 @@
-// src/pages/Analytics.jsx - Update useEffect to refresh periodically
-
+// src/pages/Analytics.jsx
 import {
   ArcElement,
   BarElement,
@@ -7,8 +6,6 @@ import {
   Chart as ChartJS,
   Legend,
   LinearScale,
-  LineElement,
-  PointElement,
   Title,
   Tooltip,
 } from "chart.js";
@@ -31,7 +28,6 @@ import Navbar from "../components/Layout/Navbar";
 import Sidebar from "../components/Layout/Sidebar";
 import { fetchAnalytics } from "../store/slices/leadSlice";
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -40,8 +36,6 @@ ChartJS.register(
   Tooltip,
   Legend,
   ArcElement,
-  PointElement,
-  LineElement,
 );
 
 const Analytics = () => {
@@ -51,30 +45,22 @@ const Analytics = () => {
   const [chartType, setChartType] = useState("bar");
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  // Fetch analytics on mount and set up auto-refresh
   useEffect(() => {
     fetchAnalyticsData();
-
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      fetchAnalyticsData();
-    }, 30000);
-
+    const interval = setInterval(fetchAnalyticsData, 30000);
     return () => clearInterval(interval);
-  }, [dispatch]);
+  }, [dispatch, timeRange]);
 
   const fetchAnalyticsData = () => {
-    dispatch(fetchAnalytics()).then(() => {
+    dispatch(fetchAnalytics({ range: timeRange })).then(() => {
       setLastUpdated(new Date());
     });
   };
 
-  const handleRefresh = () => {
-    fetchAnalyticsData();
-  };
+  const handleRefresh = () => fetchAnalyticsData();
+  const handleTimeRangeChange = (e) => setTimeRange(e.target.value);
 
   const handleExport = () => {
-    // Create CSV data
     const csvData = [
       ["Metric", "Value"],
       ["Total Leads", analytics?.total || 0],
@@ -87,19 +73,15 @@ const Analytics = () => {
       ["Lost", analytics?.byStatus?.lost || 0],
     ];
 
-    // Add source data
     if (analytics?.bySource?.length > 0) {
       csvData.push(["", ""]);
       csvData.push(["Source", "Count"]);
-      analytics.bySource.forEach((source) => {
-        csvData.push([source._id, source.count]);
-      });
+      analytics.bySource.forEach((source) =>
+        csvData.push([source._id, source.count]),
+      );
     }
 
-    // Convert to CSV string
     const csvString = csvData.map((row) => row.join(",")).join("\n");
-
-    // Create and download file
     const blob = new Blob([csvString], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -108,20 +90,12 @@ const Analytics = () => {
     a.click();
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }) => (
+  const StatCard = ({ title, value, icon: Icon, color, bgColor }) => (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
         <div className={`${bgColor} p-3 rounded-lg`}>
           <Icon className={`h-6 w-6 ${color}`} />
         </div>
-        {trend !== undefined && (
-          <span
-            className={`text-sm font-medium ${trend > 0 ? "text-green-600" : "text-red-600"}`}
-          >
-            {trend > 0 ? "+" : ""}
-            {trend}%
-          </span>
-        )}
       </div>
       <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
         {value}
@@ -138,12 +112,11 @@ const Analytics = () => {
           <Sidebar />
           <main className="flex-1 p-8">
             <div className="max-w-7xl mx-auto">
-              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64 mb-8 animate-pulse"></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-pulse">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 animate-pulse"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6"
                   >
                     <div className="h-12 w-12 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
                     <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
@@ -151,7 +124,6 @@ const Analytics = () => {
                   </div>
                 ))}
               </div>
-              <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse"></div>
             </div>
           </main>
         </div>
@@ -159,12 +131,11 @@ const Analytics = () => {
     );
   }
 
-  // Prepare chart data with null checks
   const statusData = {
     labels: ["New", "Contacted", "Qualified", "Converted", "Lost"],
     datasets: [
       {
-        label: "Leads by Status",
+        label: "Number of Leads",
         data: [
           analytics?.byStatus?.new || 0,
           analytics?.byStatus?.contacted || 0,
@@ -173,11 +144,11 @@ const Analytics = () => {
           analytics?.byStatus?.lost || 0,
         ],
         backgroundColor: [
-          "rgba(59, 130, 246, 0.8)", // blue
-          "rgba(245, 158, 11, 0.8)", // yellow
-          "rgba(139, 92, 246, 0.8)", // purple
-          "rgba(16, 185, 129, 0.8)", // green
-          "rgba(239, 68, 68, 0.8)", // red
+          "rgba(59, 130, 246, 0.8)",
+          "rgba(245, 158, 11, 0.8)",
+          "rgba(139, 92, 246, 0.8)",
+          "rgba(16, 185, 129, 0.8)",
+          "rgba(239, 68, 68, 0.8)",
         ],
         borderColor: [
           "rgb(37, 99, 235)",
@@ -193,7 +164,7 @@ const Analytics = () => {
 
   const sourceData = {
     labels:
-      analytics?.bySource?.map((s) => s._id?.replace("_", " ") || "Unknown") ||
+      analytics?.bySource?.map((s) => s._id?.replace(/_/g, " ") || "Unknown") ||
       [],
     datasets: [
       {
@@ -211,7 +182,7 @@ const Analytics = () => {
     ],
   };
 
-  const chartOptions = {
+  const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -223,9 +194,7 @@ const Analytics = () => {
             : "#374151",
         },
       },
-      title: {
-        display: false,
-      },
+      tooltip: { callbacks: { label: (context) => `${context.raw} leads` } },
     },
     scales: {
       y: {
@@ -242,9 +211,7 @@ const Analytics = () => {
         },
       },
       x: {
-        grid: {
-          display: false,
-        },
+        grid: { display: false },
         ticks: {
           color: document.documentElement.classList.contains("dark")
             ? "#fff"
@@ -270,15 +237,12 @@ const Analytics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar />
-
       <div className="flex">
         <Sidebar />
-
         <main className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Header */}
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
@@ -295,10 +259,8 @@ const Analytics = () => {
               <div className="flex space-x-3">
                 <select
                   value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                                             focus:outline-none focus:ring-2 focus:ring-primary-500
-                                             dark:bg-gray-700 dark:text-white"
+                  onChange={handleTimeRangeChange}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="7days">Last 7 Days</option>
                   <option value="30days">Last 30 Days</option>
@@ -308,9 +270,7 @@ const Analytics = () => {
                 </select>
                 <button
                   onClick={handleRefresh}
-                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 
-                                             rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 
-                                             transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 transition-colors flex items-center space-x-2"
                 >
                   <FiRefreshCw
                     className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
@@ -319,8 +279,7 @@ const Analytics = () => {
                 </button>
                 <button
                   onClick={handleExport}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg 
-                                             hover:bg-primary-700 transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2"
                 >
                   <FiDownload className="h-4 w-4" />
                   <span>Export CSV</span>
@@ -328,7 +287,6 @@ const Analytics = () => {
               </div>
             </div>
 
-            {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard
                 title="Total Leads"
@@ -360,9 +318,7 @@ const Analytics = () => {
               />
             </div>
 
-            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Status Distribution */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -372,21 +328,13 @@ const Analytics = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => setChartType("bar")}
-                      className={`p-2 rounded-lg transition-colors ${
-                        chartType === "bar"
-                          ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
+                      className={`p-2 rounded-lg transition-colors ${chartType === "bar" ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
                     >
                       <FiBarChart2 className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => setChartType("pie")}
-                      className={`p-2 rounded-lg transition-colors ${
-                        chartType === "pie"
-                          ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600"
-                          : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
+                      className={`p-2 rounded-lg transition-colors ${chartType === "pie" ? "bg-primary-100 dark:bg-primary-900/20 text-primary-600" : "hover:bg-gray-100 dark:hover:bg-gray-700"}`}
                     >
                       <FiPieChart className="h-5 w-5" />
                     </button>
@@ -395,7 +343,7 @@ const Analytics = () => {
                 <div className="h-80">
                   {analytics?.total > 0 ? (
                     chartType === "bar" ? (
-                      <Bar data={statusData} options={chartOptions} />
+                      <Bar data={statusData} options={barOptions} />
                     ) : (
                       <Pie data={statusData} options={pieOptions} />
                     )
@@ -409,7 +357,6 @@ const Analytics = () => {
                 </div>
               </div>
 
-              {/* Source Distribution */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                   <FiActivity className="mr-2 h-5 w-5 text-primary-600" />
@@ -421,8 +368,7 @@ const Analytics = () => {
                   ) : (
                     <div className="h-full flex items-center justify-center">
                       <p className="text-gray-500 dark:text-gray-400">
-                        No source data available. Add leads with different
-                        sources.
+                        No source data available.
                       </p>
                     </div>
                   )}
@@ -430,13 +376,11 @@ const Analytics = () => {
               </div>
             </div>
 
-            {/* Detailed Stats Table */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <FiCalendar className="mr-2 h-5 w-5 text-primary-600" />
                 Detailed Statistics
               </h2>
-
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -478,7 +422,6 @@ const Analytics = () => {
                 </table>
               </div>
 
-              {/* Source Breakdown */}
               {analytics?.bySource?.length > 0 && (
                 <div className="mt-8">
                   <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
@@ -491,7 +434,7 @@ const Analytics = () => {
                         className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg"
                       >
                         <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                          {source._id?.replace("_", " ") || "Unknown"}
+                          {source._id?.replace(/_/g, " ") || "Unknown"}
                         </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
                           {source.count}

@@ -1,8 +1,128 @@
-// backend/src/controllers/leadController.js
 const Lead = require('../models/Lead');
+const nodemailer = require('nodemailer');
 
-// @desc    Get all leads
-// @route   GET /api/leads
+// Add this email configuration after imports
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// @desc    Send email to lead
+// @route   POST /api/leads/:id/email
+// @access  Private
+const sendEmailToLead = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: 'Lead not found'
+      });
+    }
+
+    // Check if user owns the lead or is admin
+    if (lead.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to email this lead'
+      });
+    }
+
+    const { subject, message } = req.body;
+    
+    if (!subject || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide subject and message'
+      });
+    }
+
+    // Send email
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: lead.email,
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4f46e5;">CRM System</h2>
+          <p>Hello ${lead.firstName} ${lead.lastName},</p>
+          <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            ${message.replace(/\n/g, '<br/>')}
+          </div>
+          <p style="color: #6b7280; font-size: 12px;">This email was sent from the CRM System.</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // Add activity record
+    await Activity.create({
+      leadId: lead._id,
+      userId: req.user.id,
+      type: 'email',
+      title: `Email sent: ${subject}`,
+      description: message.substring(0, 200),
+      outcome: 'positive',
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Email sent successfully'
+    });
+  } catch (error) {
+    console.error('Error in sendEmailToLead:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error while sending email'
+    });
+  }
+};
+
+// @desc    Get email replies (webhook endpoint)
+// @route   POST /api/leads/email/webhook
+// @access  Public
+const handleEmailWebhook = async (req, res) => {
+  try {
+    const { email, subject, message, from } = req.body;
+    
+    // Find lead by email
+    const lead = await Lead.findOne({ email: from });
+    
+    if (lead) {
+      // Add reply as a note
+      lead.notes.push({
+        content: `Email Reply: ${subject}\n\n${message}`,
+        createdBy: lead.createdBy,
+        createdAt: Date.now()
+      });
+      await lead.save();
+      
+      // Add activity
+      await Activity.create({
+        leadId: lead._id,
+        userId: lead.createdBy,
+        type: 'email',
+        title: `Email reply received: ${subject}`,
+        description: message.substring(0, 200),
+        outcome: 'positive',
+      });
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error in handleEmailWebhook:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Update module.exports to include new functions
 // @access  Private
 const getLeads = async (req, res) => {
     try {
@@ -466,5 +586,7 @@ module.exports = {
     updateLead,
     deleteLead,
     addNote,
-    getAnalytics
+    getAnalytics,
+    sendEmailToLead,
+    handleEmailWebhook
 };
