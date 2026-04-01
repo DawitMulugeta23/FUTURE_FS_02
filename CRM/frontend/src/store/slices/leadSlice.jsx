@@ -80,9 +80,15 @@ export const addNote = createAsyncThunk(
 
 export const fetchAnalytics = createAsyncThunk(
     'leads/fetchAnalytics',
-    async (_, { rejectWithValue }) => {
+    async (params = {}, { rejectWithValue }) => {
         try {
-            const response = await leadService.getAnalytics();
+            const queryParams = new URLSearchParams();
+            if(params.range){
+                queryParams.append('range', params.range);
+            }
+            const url =`/leads/analytics${queryParams.toString()?`?${queryParams.toString()}}`:''}`;
+
+            const response = await leadService.getAnalytics(url);
             console.log('Analytics response:', response);
             return response.data;
         } catch (error) {

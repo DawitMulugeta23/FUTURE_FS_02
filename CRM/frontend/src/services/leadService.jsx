@@ -34,8 +34,8 @@ const leadService = {
         return response.data;
     },
 
-    async getAnalytics() {
-        const response = await api.get('/leads/analytics');
+    async getAnalytics(url='/leads/analytics') {
+        const response = await api.get(url);
         return response.data;
     }
 };

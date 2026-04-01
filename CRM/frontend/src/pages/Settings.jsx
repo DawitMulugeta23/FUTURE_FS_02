@@ -7,18 +7,14 @@ import {
   FiAlertCircle,
   FiBell,
   FiCheck,
-  FiClock,
-  FiCommand,
   FiDatabase,
   FiDownload,
   FiEye,
   FiEyeOff,
   FiGlobe,
-  FiHeadphones,
   FiLock,
   FiLogOut,
   FiMail,
-  FiMic,
   FiMoon,
   FiRefreshCw,
   FiSave,
@@ -27,12 +23,9 @@ import {
   FiSliders,
   FiSun,
   FiTrash2,
-  FiTrendingUp,
   FiUpload,
   FiUser,
   FiUsers,
-  FiVolume2,
-  FiVolumeX,
 } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -48,47 +41,6 @@ const Settings = () => {
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.ui);
-
-  // Voice context with safe fallback
-  let voiceContext;
-  try {
-    voiceContext = useVoice();
-  } catch (error) {
-    voiceContext = {
-      voiceMode: false,
-      isListening: false,
-      voiceSupported: false,
-      transcript: "",
-      voiceSettings: {
-        wakeWord: "hey crm",
-        language: "en-US",
-        speed: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        autoListen: true,
-        voiceFeedback: true,
-        continuousListening: false,
-      },
-      toggleVoiceMode: () => {},
-      startListening: () => {},
-      stopListening: () => {},
-      speak: () => {},
-      updateVoiceSettings: () => {},
-    };
-  }
-
-  const {
-    voiceMode,
-    isListening,
-    voiceSupported,
-    transcript,
-    voiceSettings,
-    toggleVoiceMode,
-    startListening,
-    stopListening,
-    speak,
-    updateVoiceSettings,
-  } = voiceContext;
 
   // Get tab from URL or default to 'profile'
   const queryParams = new URLSearchParams(location.search);
@@ -129,7 +81,6 @@ const Settings = () => {
     loginAlerts: true,
     mentionAlerts: true,
     commentAlerts: true,
-    voiceNotifications: false,
     desktopNotifications: true,
     mobileNotifications: true,
   });
@@ -167,30 +118,6 @@ const Settings = () => {
     colorScheme: "default",
   });
 
-  const [voiceSettingsLocal, setVoiceSettingsLocal] = useState({
-    wakeWord: voiceSettings?.wakeWord || "hey crm",
-    language: voiceSettings?.language || "en-US",
-    speed: voiceSettings?.speed || 1.0,
-    pitch: voiceSettings?.pitch || 1.0,
-    volume: voiceSettings?.volume || 1.0,
-    autoListen: voiceSettings?.autoListen || true,
-    voiceFeedback: voiceSettings?.voiceFeedback || true,
-    continuousListening: voiceSettings?.continuousListening || false,
-    voiceGender: "female",
-    voiceAccent: "us",
-    voiceName: "default",
-    noiseSuppression: true,
-    echoCancellation: true,
-    autoGainControl: true,
-    commandHistory: [],
-    shortcuts: {
-      next: "next",
-      previous: "previous",
-      stop: "stop",
-      help: "help",
-    },
-  });
-
   const [dataManagement, setDataManagement] = useState({
     autoBackup: true,
     backupFrequency: "weekly",
@@ -205,9 +132,19 @@ const Settings = () => {
 
   const tabs = [
     { id: "profile", name: "Profile", icon: FiUser, color: "blue" },
-    { id: "notifications", name: "Notifications", icon: FiBell, color: "yellow" },
+    {
+      id: "notifications",
+      name: "Notifications",
+      icon: FiBell,
+      color: "yellow",
+    },
     { id: "appearance", name: "Appearance", icon: FiMoon, color: "indigo" },
-    { id: "privacy", name: "Privacy & Security", icon: FiShield, color: "green" },
+    {
+      id: "privacy",
+      name: "Privacy & Security",
+      icon: FiShield,
+      color: "green",
+    },
     { id: "data", name: "Data Management", icon: FiDatabase, color: "orange" },
   ];
 
@@ -223,7 +160,6 @@ const Settings = () => {
     { id: "general", name: "General", icon: FiBell },
     { id: "leads", name: "Leads", icon: FiUsers },
     { id: "system", name: "System", icon: FiSettingsIcon },
-    { id: "voice", name: "Voice", icon: FiMic },
   ];
 
   // Set active tab from URL
@@ -265,9 +201,6 @@ const Settings = () => {
 
     setTimeout(() => {
       toast.success("Profile updated successfully");
-      if (voiceSettingsLocal.voiceFeedback) {
-        speak("Profile updated successfully");
-      }
       setIsSaving(false);
     }, 1500);
   };
@@ -305,29 +238,29 @@ const Settings = () => {
 
     toast.success("Appearance settings updated");
   };
-
-  // Handle voice settings changes
-  const handleVoiceSettingChange = (key, value) => {
-    setVoiceSettingsLocal((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-
-    updateVoiceSettings({ [key]: value });
-
-    if (key === "voiceFeedback" && value) {
-      speak("Voice feedback enabled");
-    }
+  // src/pages/Analytics.jsx - Add time range filtering
+  // Add this state and update the fetchAnalyticsData function
+  
+  const [timeRange, setTimeRange] = useState("30days");
+  
+  const fetchAnalyticsData = () => {
+      // Pass timeRange parameter to get filtered analytics
+      dispatch(fetchAnalytics({ range: timeRange })).then(() => {
+          setLastUpdated(new Date());
+      });
   };
-
-  // Test voice
-  const testVoice = () => {
-    speak(
-      "This is a test of your voice settings. Hello, I am your CRM assistant. How can I help you today?",
-    );
-    toast.success("Voice test initiated");
-  };
-
+  
+  // Update the useEffect dependency
+  useEffect(() => {
+      fetchAnalyticsData();
+  
+      // Set up auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+          fetchAnalyticsData();
+      }, 30000);
+  
+      return () => clearInterval(interval);
+  }, [dispatch, timeRange]); // Add timeRange to dependency array
   // Handle data export
   const handleExportData = () => {
     toast.loading("Preparing your data export...", { id: "export" });
@@ -338,7 +271,6 @@ const Settings = () => {
         notifications,
         privacy,
         appearance,
-        voiceSettings: voiceSettingsLocal,
         exportDate: new Date().toISOString(),
       };
 
@@ -352,9 +284,6 @@ const Settings = () => {
       a.click();
 
       toast.success("Data exported successfully!", { id: "export" });
-      if (voiceSettingsLocal.voiceFeedback) {
-        speak("Data export completed");
-      }
     }, 2000);
   };
 
@@ -401,36 +330,9 @@ const Settings = () => {
         colorScheme: "default",
       });
       dispatch(setTheme("light"));
-    } else if (activeTab === "voice") {
-      setVoiceSettingsLocal({
-        wakeWord: "hey crm",
-        language: "en-US",
-        speed: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        autoListen: true,
-        voiceFeedback: true,
-        continuousListening: false,
-        voiceGender: "female",
-        voiceAccent: "us",
-        voiceName: "default",
-        noiseSuppression: true,
-        echoCancellation: true,
-        autoGainControl: true,
-        commandHistory: [],
-        shortcuts: {
-          next: "next",
-          previous: "previous",
-          stop: "stop",
-          help: "help",
-        },
-      });
     }
 
     toast.success("Reset to default settings");
-    if (voiceSettingsLocal.voiceFeedback) {
-      speak("Settings reset to defaults");
-    }
   };
 
   return (
@@ -442,11 +344,11 @@ const Settings = () => {
 
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
-            {/* Header with Voice Status */}
+            {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between"
+              className="mb-6"
             >
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
@@ -457,45 +359,6 @@ const Settings = () => {
                   Manage your account settings and preferences
                 </p>
               </div>
-
-              {/* Voice Status Indicator */}
-              {voiceSupported && (
-                <div className="mt-4 md:mt-0 flex items-center space-x-3">
-                  <button
-                    onClick={toggleVoiceMode}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                      voiceMode
-                        ? "bg-primary-600 text-white shadow-lg"
-                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    {voiceMode ? (
-                      <>
-                        <FiVolume2 className="h-4 w-4" />
-                        <span>
-                          Voice Mode: {isListening ? "Listening" : "Active"}
-                        </span>
-                        {isListening && (
-                          <span className="flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <FiVolumeX className="h-4 w-4" />
-                        <span>Voice Mode Off</span>
-                      </>
-                    )}
-                  </button>
-                  {isListening && (
-                    <div className="text-sm text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-3 py-1 rounded-full">
-                      "{transcript || "Listening..."}"
-                    </div>
-                  )}
-                </div>
-              )}
             </motion.div>
 
             {/* Settings Navigation Tabs */}
@@ -709,6 +572,86 @@ const Settings = () => {
                                                                      dark:bg-gray-700 dark:text-white"
                               placeholder="https://example.com"
                             />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Contact Info Sub-tab */}
+                      {activeSubTab === "contact" && (
+                        <div className="space-y-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={profileForm.phone}
+                              onChange={handleProfileChange}
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                                     focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                                     dark:bg-gray-700 dark:text-white"
+                              placeholder="+1 234 567 890"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Location
+                            </label>
+                            <input
+                              type="text"
+                              name="location"
+                              value={profileForm.location}
+                              onChange={handleProfileChange}
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                                     focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                                     dark:bg-gray-700 dark:text-white"
+                              placeholder="City, Country"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Preferences Sub-tab */}
+                      {activeSubTab === "preferences" && (
+                        <div className="space-y-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Language
+                            </label>
+                            <select
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                                     focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                                     dark:bg-gray-700 dark:text-white"
+                              defaultValue="en"
+                            >
+                              <option value="en">English</option>
+                              <option value="es">Spanish</option>
+                              <option value="fr">French</option>
+                              <option value="de">German</option>
+                              <option value="zh">Chinese</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Timezone
+                            </label>
+                            <select
+                              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                                                     focus:outline-none focus:ring-2 focus:ring-primary-500
+                                                                     dark:bg-gray-700 dark:text-white"
+                              defaultValue="UTC"
+                            >
+                              <option value="UTC">UTC</option>
+                              <option value="EST">Eastern Time</option>
+                              <option value="CST">Central Time</option>
+                              <option value="MST">Mountain Time</option>
+                              <option value="PST">Pacific Time</option>
+                              <option value="GMT">GMT</option>
+                              <option value="CET">Central European Time</option>
+                              <option value="IST">India Standard Time</option>
+                              <option value="JST">Japan Standard Time</option>
+                            </select>
                           </div>
                         </div>
                       )}
@@ -1001,423 +944,55 @@ const Settings = () => {
                         </>
                       )}
 
-                      {activeSubTab === "voice" && (
+                      {activeSubTab === "system" && (
                         <>
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Voice Notifications
+                            System Notifications
                           </h3>
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                              <div>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                  Voice Feedback
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Hear spoken feedback for actions
-                                </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-gray-900 dark:text-white">
+                                    System Updates
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Get notified about new features and updates
+                                  </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    defaultChecked
+                                  />
+                                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
+                                </label>
                               </div>
-                              <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={voiceSettingsLocal.voiceFeedback}
-                                  onChange={(e) =>
-                                    handleVoiceSettingChange(
-                                      "voiceFeedback",
-                                      e.target.checked,
-                                    )
-                                  }
-                                  className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                              </label>
                             </div>
-                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                              <div>
-                                <p className="font-medium text-gray-900 dark:text-white">
-                                  Wake Word Detection
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Listen for wake word to activate voice mode
-                                </p>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="font-medium text-gray-900 dark:text-white">
+                                    Security Alerts
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Get notified about security-related events
+                                  </p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    defaultChecked
+                                  />
+                                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
+                                </label>
                               </div>
-                              <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={voiceSettingsLocal.autoListen}
-                                  onChange={(e) =>
-                                    handleVoiceSettingChange(
-                                      "autoListen",
-                                      e.target.checked,
-                                    )
-                                  }
-                                  className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                              </label>
                             </div>
                           </div>
                         </>
                       )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Voice Tab */}
-                {activeTab === "voice" && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-6"
-                  >
-                    {!voiceSupported && (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                        <p className="text-yellow-800 dark:text-yellow-400 flex items-center">
-                          <FiAlertCircle className="h-5 w-5 mr-2" />
-                          Voice recognition is not supported in your browser.
-                          Please use Chrome, Edge, or Safari for voice features.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Voice Mode Toggle */}
-                    <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div
-                            className={`p-4 rounded-full ${voiceMode ? "bg-white/20 animate-pulse" : "bg-white/10"}`}
-                          >
-                            {voiceMode ? (
-                              <FiVolume2 className="h-8 w-8" />
-                            ) : (
-                              <FiVolumeX className="h-8 w-8" />
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-semibold">
-                              {voiceMode
-                                ? "Voice Mode Active"
-                                : "Voice Mode Inactive"}
-                            </h3>
-                            <p className="text-white/80 text-sm mt-1">
-                              {voiceMode
-                                ? isListening
-                                  ? "Listening for commands..."
-                                  : "Click the mic to start listening"
-                                : "Enable voice mode to control the CRM with your voice"}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={toggleVoiceMode}
-                          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                            voiceMode
-                              ? "bg-red-500 hover:bg-red-600 text-white"
-                              : "bg-white text-primary-600 hover:bg-white/90"
-                          }`}
-                        >
-                          {voiceMode ? "Deactivate" : "Activate"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Voice Test */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <FiHeadphones className="mr-2 h-5 w-5 text-primary-500" />
-                        Test Voice
-                      </h3>
-                      <button
-                        onClick={testVoice}
-                        className="w-full py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <FiVolume2 className="h-5 w-5" />
-                        <span>Test Voice Feedback</span>
-                      </button>
-                    </div>
-
-                    {/* Wake Word Settings */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <FiCommand className="mr-2 h-5 w-5 text-primary-500" />
-                        Wake Word
-                      </h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Wake Word
-                          </label>
-                          <input
-                            type="text"
-                            value={voiceSettingsLocal.wakeWord}
-                            onChange={(e) =>
-                              handleVoiceSettingChange(
-                                "wakeWord",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                                                                 focus:outline-none focus:ring-2 focus:ring-primary-500
-                                                                 dark:bg-gray-700 dark:text-white"
-                            placeholder="hey crm"
-                          />
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Say this word to activate voice mode
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Voice Settings Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Language Settings */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                          <FiGlobe className="mr-2 h-5 w-5 text-primary-500" />
-                          Language
-                        </h3>
-                        <select
-                          value={voiceSettingsLocal.language}
-                          onChange={(e) =>
-                            handleVoiceSettingChange("language", e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-                                                             focus:outline-none focus:ring-2 focus:ring-primary-500
-                                                             dark:bg-gray-700 dark:text-white"
-                        >
-                          <option value="en-US">English (US)</option>
-                          <option value="en-GB">English (UK)</option>
-                          <option value="en-AU">English (Australia)</option>
-                          <option value="es-ES">Spanish</option>
-                          <option value="fr-FR">French</option>
-                          <option value="de-DE">German</option>
-                          <option value="it-IT">Italian</option>
-                          <option value="pt-BR">Portuguese (Brazil)</option>
-                          <option value="ru-RU">Russian</option>
-                          <option value="ja-JP">Japanese</option>
-                          <option value="ko-KR">Korean</option>
-                          <option value="zh-CN">Chinese (Simplified)</option>
-                          <option value="zh-TW">Chinese (Traditional)</option>
-                          <option value="ar-SA">Arabic</option>
-                          <option value="hi-IN">Hindi</option>
-                        </select>
-                      </div>
-
-                      {/* Voice Speed */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                          <FiClock className="mr-2 h-5 w-5 text-primary-500" />
-                          Voice Speed
-                        </h3>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="2"
-                            step="0.1"
-                            value={voiceSettingsLocal.speed}
-                            onChange={(e) =>
-                              handleVoiceSettingChange(
-                                "speed",
-                                parseFloat(e.target.value),
-                              )
-                            }
-                            className="w-full"
-                          />
-                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                            <span>Slow (0.5x)</span>
-                            <span>Normal (1.0x)</span>
-                            <span>Fast (2.0x)</span>
-                          </div>
-                          <p className="text-center text-primary-600 font-medium mt-2">
-                            Current: {voiceSettingsLocal.speed}x
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Voice Pitch */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                          <FiTrendingUp className="mr-2 h-5 w-5 text-primary-500" />
-                          Voice Pitch
-                        </h3>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="2"
-                            step="0.1"
-                            value={voiceSettingsLocal.pitch}
-                            onChange={(e) =>
-                              handleVoiceSettingChange(
-                                "pitch",
-                                parseFloat(e.target.value),
-                              )
-                            }
-                            className="w-full"
-                          />
-                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                            <span>Low</span>
-                            <span>Normal</span>
-                            <span>High</span>
-                          </div>
-                          <p className="text-center text-primary-600 font-medium mt-2">
-                            Current: {voiceSettingsLocal.pitch}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Voice Volume */}
-                      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                          <FiVolume2 className="mr-2 h-5 w-5 text-primary-500" />
-                          Volume
-                        </h3>
-                        <div className="space-y-2">
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={voiceSettingsLocal.volume}
-                            onChange={(e) =>
-                              handleVoiceSettingChange(
-                                "volume",
-                                parseFloat(e.target.value),
-                              )
-                            }
-                            className="w-full"
-                          />
-                          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                            <span>Mute</span>
-                            <span>Normal</span>
-                            <span>Max</span>
-                          </div>
-                          <p className="text-center text-primary-600 font-medium mt-2">
-                            {Math.round(voiceSettingsLocal.volume * 100)}%
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Advanced Settings */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <FiSliders className="mr-2 h-5 w-5 text-primary-500" />
-                        Advanced Audio Settings
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            Noise Suppression
-                          </span>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={voiceSettingsLocal.noiseSuppression}
-                              onChange={(e) =>
-                                handleVoiceSettingChange(
-                                  "noiseSuppression",
-                                  e.target.checked,
-                                )
-                              }
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            Echo Cancellation
-                          </span>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={voiceSettingsLocal.echoCancellation}
-                              onChange={(e) =>
-                                handleVoiceSettingChange(
-                                  "echoCancellation",
-                                  e.target.checked,
-                                )
-                              }
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            Auto Gain Control
-                          </span>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={voiceSettingsLocal.autoGainControl}
-                              onChange={(e) =>
-                                handleVoiceSettingChange(
-                                  "autoGainControl",
-                                  e.target.checked,
-                                )
-                              }
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            Continuous Listening
-                          </span>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={voiceSettingsLocal.continuousListening}
-                              onChange={(e) =>
-                                handleVoiceSettingChange(
-                                  "continuousListening",
-                                  e.target.checked,
-                                )
-                              }
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-primary-600"></div>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Voice Commands List */}
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                        <FiCommand className="mr-2 h-5 w-5 text-primary-500" />
-                        Available Voice Commands
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {[
-                          "Go to dashboard",
-                          "Go to leads",
-                          "Go to analytics",
-                          "Go to settings",
-                          "Dark mode",
-                          "Light mode",
-                          "Create lead",
-                          "Search for [term]",
-                          "My profile",
-                          "Help",
-                          "Stop listening",
-                          "Logout",
-                        ].map((cmd, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                          >
-                            <FiVolume2 className="h-3 w-3 text-primary-500" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                              "{cmd}"
-                            </span>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   </motion.div>
                 )}

@@ -332,44 +332,90 @@ const addNote = async (req, res) => {
     }
 };
 
-// @desc    Get lead analytics
-// @route   GET /api/leads/analytics
 // @access  Private
 const getAnalytics = async (req, res) => {
     try {
         // Get analytics only for current user's leads
         const userId = req.user.id;
+        const { range } = req.query;
         
         console.log('Fetching analytics for user:', userId);
+        console.log('Time range:', range);
         
-        const totalLeads = await Lead.countDocuments({ createdBy: userId });
-        console.log('Total leads:', totalLeads);
+        // Base query for user's leads
+        let baseQuery = { createdBy: userId };
+        
+        // Add date filter based on range
+        let recentDateFilter = {};
+        let dateFilter = {};
+        
+        const now = new Date();
+        let startDate = null;
+        
+        switch (range) {
+            case '7days':
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - 7);
+                dateFilter = { createdAt: { $gte: startDate } };
+                recentDateFilter = { createdAt: { $gte: startDate } };
+                break;
+            case '30days':
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - 30);
+                dateFilter = { createdAt: { $gte: startDate } };
+                recentDateFilter = { createdAt: { $gte: startDate } };
+                break;
+            case '90days':
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - 90);
+                dateFilter = { createdAt: { $gte: startDate } };
+                recentDateFilter = { createdAt: { $gte: startDate } };
+                break;
+            case 'year':
+                startDate = new Date();
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                dateFilter = { createdAt: { $gte: startDate } };
+                recentDateFilter = { createdAt: { $gte: startDate } };
+                break;
+            case 'all':
+            default:
+                // No date filter for 'all'
+                dateFilter = {};
+                // For recent (30 days), still use 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                recentDateFilter = { createdAt: { $gte: thirtyDaysAgo } };
+                break;
+        }
+        
+        // Apply date filter for total count
+        const queryWithDate = { ...baseQuery, ...dateFilter };
+        
+        const totalLeads = await Lead.countDocuments(queryWithDate);
+        console.log('Total leads in period:', totalLeads);
         
         const leadsByStatus = await Lead.aggregate([
-            { $match: { createdBy: userId } },
+            { $match: queryWithDate },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
         console.log('Leads by status:', leadsByStatus);
         
         const leadsBySource = await Lead.aggregate([
-            { $match: { createdBy: userId } },
+            { $match: queryWithDate },
             { $group: { _id: '$source', count: { $sum: 1 } } }
         ]);
         console.log('Leads by source:', leadsBySource);
         
-        // Leads created in last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
+        // Leads created in last 30 days (for the recent metric)
         const recentLeads = await Lead.countDocuments({
             createdBy: userId,
-            createdAt: { $gte: thirtyDaysAgo }
+            ...recentDateFilter
         });
-        console.log('Recent leads (30 days):', recentLeads);
+        console.log('Recent leads:', recentLeads);
         
-        // Conversion rate
+        // Conversion rate (only for leads that are converted in the period)
         const convertedLeads = await Lead.countDocuments({ 
-            createdBy: userId,
+            ...queryWithDate,
             status: 'converted' 
         });
         const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
