@@ -2,9 +2,7 @@
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+// backend/controllers/authController.js (ensure proper error handling)
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -54,6 +52,23 @@ const registerUser = async (req, res) => {
     }
   } catch (error) {
     console.error("Registration error:", error);
+
+    // Handle specific mongoose errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(", "),
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || "Server error during registration",
