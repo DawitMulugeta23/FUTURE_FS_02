@@ -1,7 +1,15 @@
 // src/components/Settings/ProfileTab.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { FiEye, FiEyeOff, FiLock, FiMail, FiRefreshCw, FiSave, FiUser } from "react-icons/fi";
+import {
+  FiEye,
+  FiEyeOff,
+  FiLock,
+  FiMail,
+  FiRefreshCw,
+  FiSave,
+  FiUser,
+} from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import ProfileAvatar from "../Profile/ProfileAvatar";
 
@@ -41,7 +49,10 @@ const ProfileTab = ({ user }) => {
     e.preventDefault();
     setIsSaving(true);
 
-    if (profileForm.newPassword && profileForm.newPassword !== profileForm.confirmPassword) {
+    if (
+      profileForm.newPassword &&
+      profileForm.newPassword !== profileForm.confirmPassword
+    ) {
       toast.error("New passwords do not match");
       setIsSaving(false);
       return;
@@ -78,7 +89,9 @@ const ProfileTab = ({ user }) => {
           <div className="flex items-center space-x-6">
             <ProfileAvatar user={user} size="2xl" />
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Profile Picture</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                Profile Picture
+              </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Click on the avatar to upload a new photo or use Gravatar
               </p>
@@ -247,7 +260,9 @@ const ProfileTab = ({ user }) => {
               placeholder="Enter new password"
               minLength="6"
             />
-            <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters long</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Must be at least 6 characters long
+            </p>
           </div>
 
           <div>
@@ -270,9 +285,15 @@ const ProfileTab = ({ user }) => {
             </h4>
             <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
               <li className="flex items-center">✓ At least 6 characters</li>
-              <li className="flex items-center">✓ Include uppercase and lowercase letters</li>
-              <li className="flex items-center">✓ Include at least one number</li>
-              <li className="flex items-center">✓ Include at least one special character</li>
+              <li className="flex items-center">
+                ✓ Include uppercase and lowercase letters
+              </li>
+              <li className="flex items-center">
+                ✓ Include at least one number
+              </li>
+              <li className="flex items-center">
+                ✓ Include at least one special character
+              </li>
             </ul>
           </div>
         </div>
