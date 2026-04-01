@@ -5,18 +5,40 @@ const dotenv = require("dotenv");
 const path = require("path");
 const colors = require("colors");
 
-// Load env vars
-dotenv.config({ path: path.join(__dirname, ".env") });
+// Load env vars - try multiple paths
+const envPath = path.join(__dirname, ".env");
+console.log("Looking for .env at:", envPath);
+dotenv.config({ path: envPath });
+
+// Also try parent directory if not found
+if (!process.env.MONGODB_URI) {
+  console.log("No MONGODB_URI found, trying parent directory...");
+  dotenv.config({ path: path.join(__dirname, "..", ".env") });
+}
+
+// Debug: Check if env variables are loaded
+console.log("Environment variables loaded:");
+console.log("MONGODB_URI:", process.env.MONGODB_URI ? "✓ Set" : "✗ Not set");
+console.log("JWT_SECRET:", process.env.JWT_SECRET ? "✓ Set" : "✗ Not set");
+console.log("PORT:", process.env.PORT || "5000");
+
+// Check if MONGODB_URI exists
+if (!process.env.MONGODB_URI) {
+  console.error("❌ MONGODB_URI is not defined in environment variables!");
+  console.error("Please create a .env file in the backend folder with:");
+  console.error("MONGODB_URI=mongodb://localhost:27017/crm-system");
+  process.exit(1);
+}
 
 // Import database connection
-const connectDB = require("./src/config/db");
+const connectDB = require("./config/db");
 
 // Import routes
-const authRoutes = require("./src/routes/authRoutes");
-const leadRoutes = require("./src/routes/leadRoutes");
+const authRoutes = require("./routes/authRoutes");
+const leadRoutes = require("./routes/leadRoutes");
 
 // Import error middleware
-const errorHandler = require("./src/middleware/error");
+const errorHandler = require("./middleware/error");
 
 // Connect to database
 connectDB();
