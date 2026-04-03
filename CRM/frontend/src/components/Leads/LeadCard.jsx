@@ -1,7 +1,6 @@
 // src/components/Leads/LeadCard.jsx
 import { formatDistanceToNow } from "date-fns";
-import md5 from "md5";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FiBriefcase, FiCalendar, FiMail, FiPhone } from "react-icons/fi";
 
 const statusColors = {
@@ -15,17 +14,47 @@ const statusColors = {
   lost: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
 };
 
-const LeadCard = ({ lead, onClick }) => {
-  const [gravatarUrl, setGravatarUrl] = useState("");
+// Get initials from first and last name
+const getInitials = (firstName, lastName) => {
+  if (!firstName && !lastName) return "?";
 
-  useEffect(() => {
-    if (lead?.email) {
-      const emailHash = md5(lead.email.toLowerCase().trim());
-      setGravatarUrl(
-        `https://www.gravatar.com/avatar/${emailHash}?d=identicon&s=128`,
-      );
-    }
-  }, [lead]);
+  const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : "";
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
+
+  if (firstInitial && lastInitial) {
+    return `${firstInitial}${lastInitial}`;
+  }
+  return firstInitial || lastInitial || "?";
+};
+
+// Generate consistent background color based on lead name
+const getBackgroundColor = (firstName, lastName) => {
+  const name = `${firstName} ${lastName}`;
+
+  const colors = [
+    "from-red-500 to-red-600",
+    "from-blue-500 to-blue-600",
+    "from-green-500 to-green-600",
+    "from-yellow-500 to-yellow-600",
+    "from-purple-500 to-purple-600",
+    "from-pink-500 to-pink-600",
+    "from-indigo-500 to-indigo-600",
+    "from-teal-500 to-teal-600",
+    "from-orange-500 to-orange-600",
+    "from-cyan-500 to-cyan-600",
+  ];
+
+  // Use the sum of character codes to determine color index
+  const sum = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colorIndex = sum % colors.length;
+
+  return colors[colorIndex];
+};
+
+const LeadCard = ({ lead, onClick }) => {
+  const initials = getInitials(lead.firstName, lead.lastName);
+  const bgGradient = getBackgroundColor(lead.firstName, lead.lastName);
+  const [imageError, setImageError] = useState(false);
 
   return (
     <div
@@ -34,25 +63,14 @@ const LeadCard = ({ lead, onClick }) => {
     >
       <div className="p-6">
         <div className="flex items-start space-x-4 mb-4">
-          {/* Lead Avatar from Gravatar */}
+          {/* Lead Avatar - Using Initials */}
           <div className="flex-shrink-0">
-            <div className="h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600">
-              {gravatarUrl ? (
-                <img
-                  src={gravatarUrl}
-                  alt={`${lead.firstName} ${lead.lastName}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = `https://ui-avatars.com/api/?name=${lead.firstName}+${lead.lastName}&background=4f46e5&color=fff&size=128`;
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold">
-                  {lead.firstName?.charAt(0)}
-                  {lead.lastName?.charAt(0)}
-                </div>
-              )}
+            <div
+              className={`h-12 w-12 rounded-full overflow-hidden bg-gradient-to-br ${bgGradient} shadow-md`}
+            >
+              <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                {initials}
+              </div>
             </div>
           </div>
 

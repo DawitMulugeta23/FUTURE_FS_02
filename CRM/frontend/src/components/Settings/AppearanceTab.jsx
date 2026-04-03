@@ -2,11 +2,15 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FiCheck, FiMoon, FiSave, FiSettings, FiSun } from "react-icons/fi";
+import { useDispatch, useSelector } from "react-redux";
+import { setFontSize, setTheme } from "../../store/slices/uiSlice";
 
-const AppearanceTab = ({ theme, setTheme }) => {
+const AppearanceTab = () => {
+  const dispatch = useDispatch();
+  const { theme, fontSize } = useSelector((state) => state.ui);
   const [isSaving, setIsSaving] = useState(false);
+
   const [appearance, setAppearance] = useState({
-    fontSize: "medium",
     density: "comfortable",
     animations: true,
     reduceMotion: false,
@@ -24,8 +28,13 @@ const AppearanceTab = ({ theme, setTheme }) => {
   };
 
   const handleThemeChange = (newTheme) => {
-    setTheme(newTheme);
+    dispatch(setTheme(newTheme));
     toast.success(`Switched to ${newTheme} mode`);
+  };
+
+  const handleFontSizeChange = (size) => {
+    dispatch(setFontSize(size));
+    toast.success(`Font size changed to ${size}`);
   };
 
   const handleSubmit = async (e) => {
@@ -39,6 +48,7 @@ const AppearanceTab = ({ theme, setTheme }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Theme Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Theme
@@ -82,32 +92,79 @@ const AppearanceTab = ({ theme, setTheme }) => {
         </div>
       </div>
 
+      {/* Font Size Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Font Size
         </h3>
-        <div className="flex space-x-2">
-          {["small", "medium", "large"].map((size) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { size: "small", label: "Small", example: "Small text" },
+            { size: "medium", label: "Medium", example: "Medium text" },
+            { size: "large", label: "Large", example: "Large text" },
+          ].map((option) => (
             <button
-              key={size}
+              key={option.size}
               type="button"
-              onClick={() => handleAppearanceChange("fontSize", size)}
-              className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                appearance.fontSize === size
-                  ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600"
+              onClick={() => handleFontSizeChange(option.size)}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                fontSize === option.size
+                  ? "border-primary-600 bg-primary-50 dark:bg-primary-900/20"
                   : "border-gray-200 dark:border-gray-700 hover:border-primary-300"
               }`}
             >
-              <span
-                className={`block text-center capitalize ${size === "small" ? "text-sm" : size === "medium" ? "text-base" : "text-lg"}`}
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className={`font-medium ${
+                    option.size === "small"
+                      ? "text-sm"
+                      : option.size === "medium"
+                        ? "text-base"
+                        : "text-lg"
+                  }`}
+                >
+                  {option.label}
+                </span>
+                {fontSize === option.size && (
+                  <FiCheck className="h-4 w-4 text-primary-600" />
+                )}
+              </div>
+              <p
+                className={`text-gray-600 dark:text-gray-400 ${
+                  option.size === "small"
+                    ? "text-xs"
+                    : option.size === "medium"
+                      ? "text-sm"
+                      : "text-base"
+                }`}
               >
-                {size}
-              </span>
+                {option.example}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {option.size === "small" && "Compact view"}
+                {option.size === "medium" && "Default view"}
+                {option.size === "large" && "Better readability"}
+              </p>
             </button>
           ))}
         </div>
+
+        {/* Font Size Preview */}
+        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Preview:
+          </p>
+          <p className="text-gray-600 dark:text-gray-400">
+            This is how text will look with the selected font size.
+          </p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <strong>Bold text</strong> and <em>italic text</em> will also scale
+            accordingly.
+          </p>
+        </div>
       </div>
 
+      {/* Layout Density Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Layout Density
@@ -133,6 +190,7 @@ const AppearanceTab = ({ theme, setTheme }) => {
         </div>
       </div>
 
+      {/* Display Options */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Display Options

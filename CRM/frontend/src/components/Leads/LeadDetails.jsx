@@ -1,4 +1,4 @@
-// src/components/Leads/LeadDetails.jsx
+// src/components/Leads/LeadDetails.jsx - Add this function and update the header section
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -30,6 +30,42 @@ const statusColors = {
   lost: "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400",
 };
 
+// Get initials from first and last name
+const getInitials = (firstName, lastName) => {
+  if (!firstName && !lastName) return "?";
+
+  const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : "";
+  const lastInitial = lastName ? lastName.charAt(0).toUpperCase() : "";
+
+  if (firstInitial && lastInitial) {
+    return `${firstInitial}${lastInitial}`;
+  }
+  return firstInitial || lastInitial || "?";
+};
+
+// Generate consistent background color based on lead name
+const getBackgroundColor = (firstName, lastName) => {
+  const name = `${firstName} ${lastName}`;
+
+  const colors = [
+    "from-red-500 to-red-600",
+    "from-blue-500 to-blue-600",
+    "from-green-500 to-green-600",
+    "from-yellow-500 to-yellow-600",
+    "from-purple-500 to-purple-600",
+    "from-pink-500 to-pink-600",
+    "from-indigo-500 to-indigo-600",
+    "from-teal-500 to-teal-600",
+    "from-orange-500 to-orange-600",
+    "from-cyan-500 to-cyan-600",
+  ];
+
+  const sum = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colorIndex = sum % colors.length;
+
+  return colors[colorIndex];
+};
+
 const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,6 +75,9 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
   const [activeTab, setActiveTab] = useState("notes");
   const [emailHistory, setEmailHistory] = useState([]);
   const [loadingEmails, setLoadingEmails] = useState(false);
+
+  const initials = getInitials(lead.firstName, lead.lastName);
+  const bgGradient = getBackgroundColor(lead.firstName, lead.lastName);
 
   useEffect(() => {
     if (activeTab === "emails") {
@@ -128,15 +167,25 @@ const LeadDetails = ({ lead, onClose, onUpdate }) => {
           </div>
 
           <div className="p-6">
-            {/* Header with actions */}
+            {/* Header with avatar and actions */}
             <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {lead.firstName} {lead.lastName}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
-                  {lead.company || "No Company"}
-                </p>
+              <div className="flex items-center space-x-4">
+                {/* Lead Avatar - Large version for details */}
+                <div
+                  className={`h-16 w-16 rounded-full overflow-hidden bg-gradient-to-br ${bgGradient} shadow-md flex-shrink-0`}
+                >
+                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-2xl">
+                    {initials}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {lead.firstName} {lead.lastName}
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1">
+                    {lead.company || "No Company"}
+                  </p>
+                </div>
               </div>
 
               <div className="flex space-x-2">

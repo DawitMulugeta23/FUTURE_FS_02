@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx - Updated with Redux
+// src/pages/Dashboard.jsx - Update the layout structure
 import React, { useEffect } from 'react';
 import { FiPlus, FiSearch } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
@@ -53,7 +53,7 @@ const Dashboard = () => {
             <div className="flex">
                 <Sidebar />
                 
-                <main className="flex-1 p-8">
+                <main className="flex-1 p-8 overflow-y-auto">
                     <div className="max-w-7xl mx-auto">
                         {/* Header */}
                         <div className="flex justify-between items-center mb-8">

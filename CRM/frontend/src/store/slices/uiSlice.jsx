@@ -7,8 +7,6 @@ const getInitialTheme = () => {
     if (savedTheme && (savedTheme === "light" || savedTheme === "dark")) {
       return savedTheme;
     }
-
-    // Check system preference
     if (
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -17,7 +15,6 @@ const getInitialTheme = () => {
     }
     return "light";
   } catch (error) {
-    console.error("Error getting initial theme:", error);
     return "light";
   }
 };
@@ -30,19 +27,51 @@ const getInitialFontSize = () => {
   }
 };
 
-const getInitialHighContrast = () => {
+const applyFontSize = (fontSize) => {
   try {
-    return localStorage.getItem("highContrast") === "true";
-  } catch (error) {
-    return false;
-  }
-};
+    const root = document.documentElement;
 
-const getInitialReduceMotion = () => {
-  try {
-    return localStorage.getItem("reduceMotion") === "true";
+    // Remove existing font size classes
+    root.classList.remove(
+      "font-size-small",
+      "font-size-medium",
+      "font-size-large",
+    );
+
+    // Add new font size class
+    root.classList.add(`font-size-${fontSize}`);
+
+    // Apply CSS variables for font sizes
+    if (fontSize === "small") {
+      root.style.setProperty("--font-size-base", "14px");
+      root.style.setProperty("--font-size-sm", "12px");
+      root.style.setProperty("--font-size-lg", "16px");
+      root.style.setProperty("--font-size-xl", "18px");
+      root.style.setProperty("--font-size-2xl", "20px");
+      root.style.setProperty("--font-size-3xl", "24px");
+    } else if (fontSize === "medium") {
+      root.style.setProperty("--font-size-base", "16px");
+      root.style.setProperty("--font-size-sm", "14px");
+      root.style.setProperty("--font-size-lg", "18px");
+      root.style.setProperty("--font-size-xl", "20px");
+      root.style.setProperty("--font-size-2xl", "24px");
+      root.style.setProperty("--font-size-3xl", "30px");
+    } else if (fontSize === "large") {
+      root.style.setProperty("--font-size-base", "18px");
+      root.style.setProperty("--font-size-sm", "16px");
+      root.style.setProperty("--font-size-lg", "20px");
+      root.style.setProperty("--font-size-xl", "22px");
+      root.style.setProperty("--font-size-2xl", "28px");
+      root.style.setProperty("--font-size-3xl", "36px");
+    }
+
+    // Apply to body
+    document.body.style.fontSize = `var(--font-size-base)`;
+
+    localStorage.setItem("fontSize", fontSize);
+    console.log("Font size applied:", fontSize);
   } catch (error) {
-    return false;
+    console.error("Error applying font size:", error);
   }
 };
 
@@ -52,104 +81,13 @@ const applyTheme = (theme) => {
     if (theme === "dark") {
       root.classList.add("dark");
       root.setAttribute("data-theme", "dark");
-      document.body.classList.add("dark");
     } else {
       root.classList.remove("dark");
       root.removeAttribute("data-theme");
-      document.body.classList.remove("dark");
     }
     localStorage.setItem("theme", theme);
-    console.log("Theme applied:", theme);
   } catch (error) {
     console.error("Error applying theme:", error);
-  }
-};
-
-const applyFontSize = (fontSize) => {
-  try {
-    const root = document.documentElement;
-    // Remove existing font size classes
-    root.classList.remove("text-sm", "text-base", "text-lg", "text-xl");
-
-    // Add new font size class
-    switch (fontSize) {
-      case "small":
-        root.classList.add("text-sm");
-        document.body.style.fontSize = "14px";
-        break;
-      case "medium":
-        root.classList.add("text-base");
-        document.body.style.fontSize = "16px";
-        break;
-      case "large":
-        root.classList.add("text-lg");
-        document.body.style.fontSize = "18px";
-        break;
-      default:
-        root.classList.add("text-base");
-        document.body.style.fontSize = "16px";
-    }
-    localStorage.setItem("fontSize", fontSize);
-    console.log("Font size applied:", fontSize);
-  } catch (error) {
-    console.error("Error applying font size:", error);
-  }
-};
-
-const applyHighContrast = (enabled) => {
-  try {
-    const root = document.documentElement;
-    if (enabled) {
-      root.classList.add("high-contrast");
-      // Increase contrast for dark mode
-      if (root.classList.contains("dark")) {
-        root.style.setProperty("--bg-primary", "#000000");
-        root.style.setProperty("--text-primary", "#ffffff");
-        root.style.setProperty("--border-color", "#ffff00");
-      } else {
-        root.style.setProperty("--bg-primary", "#ffffff");
-        root.style.setProperty("--text-primary", "#000000");
-        root.style.setProperty("--border-color", "#0000ff");
-      }
-    } else {
-      root.classList.remove("high-contrast");
-      root.style.removeProperty("--bg-primary");
-      root.style.removeProperty("--text-primary");
-      root.style.removeProperty("--border-color");
-    }
-    localStorage.setItem("highContrast", enabled);
-    console.log("High contrast applied:", enabled);
-  } catch (error) {
-    console.error("Error applying high contrast:", error);
-  }
-};
-
-const applyReduceMotion = (enabled) => {
-  try {
-    const root = document.documentElement;
-    if (enabled) {
-      root.classList.add("reduce-motion");
-      // Add CSS to disable animations
-      const style = document.createElement("style");
-      style.id = "reduce-motion-styles";
-      style.textContent = `
-                * {
-                    animation-duration: 0.001s !important;
-                    transition-duration: 0.001s !important;
-                }
-            `;
-      document.head.appendChild(style);
-    } else {
-      root.classList.remove("reduce-motion");
-      const style = document.getElementById("reduce-motion-styles");
-      if (style) {
-        style.remove();
-      }
-    }
-    localStorage.setItem("reduceMotion", enabled);
-    console.log("Reduce motion applied:", enabled);
-  } catch (error) {
-    console.error("Error applying reduce motion:", error);
   }
 };
 
@@ -158,8 +96,6 @@ const uiSlice = createSlice({
   initialState: {
     theme: getInitialTheme(),
     fontSize: getInitialFontSize(),
-    highContrast: getInitialHighContrast(),
-    reduceMotion: getInitialReduceMotion(),
     sidebarOpen: true,
     modalOpen: false,
   },
@@ -177,14 +113,6 @@ const uiSlice = createSlice({
       state.fontSize = action.payload;
       applyFontSize(action.payload);
     },
-    setHighContrast: (state, action) => {
-      state.highContrast = action.payload;
-      applyHighContrast(action.payload);
-    },
-    setReduceMotion: (state, action) => {
-      state.reduceMotion = action.payload;
-      applyReduceMotion(action.payload);
-    },
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;
     },
@@ -194,19 +122,14 @@ const uiSlice = createSlice({
   },
 });
 
-// Apply initial settings
-setTimeout(() => {
-  applyFontSize(getInitialFontSize());
-  applyHighContrast(getInitialHighContrast());
-  applyReduceMotion(getInitialReduceMotion());
-}, 100);
+// Apply initial settings on load
+applyTheme(getInitialTheme());
+applyFontSize(getInitialFontSize());
 
 export const {
   toggleTheme,
   setTheme,
   setFontSize,
-  setHighContrast,
-  setReduceMotion,
   toggleSidebar,
   setModalOpen,
 } = uiSlice.actions;

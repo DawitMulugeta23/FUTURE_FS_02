@@ -31,43 +31,27 @@ const PublicRoute = ({ children }) => {
 
 // Main App Content
 function AppContent() {
-  const { theme, fontSize, highContrast, reduceMotion } = useSelector(
-    (state) => state.ui,
-  );
+  const { theme, fontSize } = useSelector((state) => state.ui);
 
-  // Apply theme and accessibility settings
+  // Apply theme and font size
   useEffect(() => {
     const root = document.documentElement;
 
     // Apply theme
     if (theme === "dark") {
       root.classList.add("dark");
-      root.setAttribute("data-theme", "dark");
     } else {
       root.classList.remove("dark");
-      root.removeAttribute("data-theme");
     }
 
-    // Apply font size
-    root.classList.remove("text-sm", "text-base", "text-lg", "text-xl");
-    root.classList.add(`text-${fontSize}`);
-    document.body.style.fontSize =
-      fontSize === "small" ? "14px" : fontSize === "medium" ? "16px" : "18px";
-
-    // Apply high contrast
-    if (highContrast) {
-      root.classList.add("high-contrast");
-    } else {
-      root.classList.remove("high-contrast");
-    }
-
-    // Apply reduce motion
-    if (reduceMotion) {
-      root.classList.add("reduce-motion");
-    } else {
-      root.classList.remove("reduce-motion");
-    }
-  }, [theme, fontSize, highContrast, reduceMotion]);
+    // Apply font size - remove existing classes first
+    root.classList.remove(
+      "font-size-small",
+      "font-size-medium",
+      "font-size-large",
+    );
+    root.classList.add(`font-size-${fontSize}`);
+  }, [theme, fontSize]);
 
   return (
     <>

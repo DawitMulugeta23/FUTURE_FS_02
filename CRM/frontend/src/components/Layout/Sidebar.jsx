@@ -32,7 +32,7 @@ const Sidebar = () => {
   if (!sidebarOpen) return null;
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg h-[calc(100vh-4rem)] transition-colors duration-200">
+    <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg transition-colors duration-200 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
       <nav className="mt-8 px-4">
         <ul className="space-y-2">
           {menuItems.map((item) => (
