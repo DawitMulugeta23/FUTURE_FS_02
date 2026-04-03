@@ -33,11 +33,17 @@ const leadService = {
     const response = await api.post(`/leads/${id}/notes`, { content });
     return response.data;
   },
-  // Add this method to leadService
+
   async sendEmail(id, emailData) {
     const response = await api.post(`/leads/${id}/email`, emailData);
     return response.data;
   },
+
+  async getEmailHistory(id) {
+    const response = await api.get(`/leads/${id}/emails`);
+    return response.data;
+  },
+
   async getAnalytics() {
     const response = await api.get("/leads/analytics");
     return response.data;

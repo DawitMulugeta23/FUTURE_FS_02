@@ -128,6 +128,22 @@ export const sendEmailToLead = createAsyncThunk(
     }
   },
 );
+// Add this to leadSlice.js after sendEmailToLead
+
+export const fetchEmailHistory = createAsyncThunk(
+    'leads/fetchEmailHistory',
+    async (id, { rejectWithValue }) => {
+        try {
+            const response = await leadService.getEmailHistory(id);
+            return { id, emails: response.data };
+        } catch (error) {
+            const message = error.response?.data?.message || error.message || 'Failed to fetch email history';
+            toast.error(message);
+            return rejectWithValue(message);
+        }
+    }
+);
+
 const leadSlice = createSlice({
   name: "leads",
   initialState: {
@@ -286,6 +302,17 @@ const leadSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+
+      addCase(fetchEmailHistory.fulfilled, (state, action) => {
+        if (state.selectedLead && state.selectedLead._id === action.payload.id) {
+            state.selectedLead.emailHistory = action.payload.emails;
+        }
+        const leadIndex = state.leads.findIndex(lead => lead._id === action.payload.id);
+        if (leadIndex !== -1) {
+            state.leads[leadIndex].emailHistory = action.payload.emails;
+        }
+    })
+    
       .addCase(fetchAnalytics.fulfilled, (state, action) => {
         state.loading = false;
         console.log("Updating analytics with:", action.payload);

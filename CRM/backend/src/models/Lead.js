@@ -17,6 +17,43 @@ const noteSchema = new mongoose.Schema({
     }
 });
 
+const emailHistorySchema = new mongoose.Schema({
+    subject: {
+        type: String,
+        required: true
+    },
+    message: {
+        type: String,
+        required: true
+    },
+    sentBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    sentAt: {
+        type: Date,
+        default: Date.now
+    },
+    status: {
+        type: String,
+        enum: ['sent', 'failed', 'delivered'],
+        default: 'sent'
+    },
+    replyReceived: {
+        type: Boolean,
+        default: false
+    },
+    replyMessage: {
+        type: String,
+        default: null
+    },
+    replyReceivedAt: {
+        type: Date,
+        default: null
+    }
+});
+
 const leadSchema = new mongoose.Schema({
     firstName: {
         type: String,
@@ -62,6 +99,10 @@ const leadSchema = new mongoose.Schema({
         type: [noteSchema],
         default: []
     },
+    emailHistory: {
+        type: [emailHistorySchema],
+        default: []
+    },
     convertedAt: {
         type: Date,
         default: null
@@ -77,7 +118,5 @@ const leadSchema = new mongoose.Schema({
 
 // Create compound index for email + createdBy to ensure unique leads per user
 leadSchema.index({ email: 1, createdBy: 1 }, { unique: true });
-
-// No middleware - all logic handled in controllers
 
 module.exports = mongoose.model('Lead', leadSchema);
