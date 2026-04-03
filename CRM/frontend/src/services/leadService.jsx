@@ -1,4 +1,3 @@
-// src/services/leadService.js
 import api from "./api";
 
 const leadService = {

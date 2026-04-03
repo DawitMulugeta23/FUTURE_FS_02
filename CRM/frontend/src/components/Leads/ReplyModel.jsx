@@ -1,4 +1,3 @@
-// src/components/Leads/ReplyModal.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FiCornerUpLeft, FiSend, FiX } from "react-icons/fi";

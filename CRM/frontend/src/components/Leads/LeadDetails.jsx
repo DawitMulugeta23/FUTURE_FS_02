@@ -1,4 +1,3 @@
-// src/components/Leads/LeadDetails.jsx
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -22,7 +21,6 @@ import EmailModal from "./EmailModal";
 import LeadForm from "./LeadForm";
 import RepliesList from "./RepliesList";
 import ReplyModal from "./ReplyModal";
-
 const statusColors = {
   new: "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
   contacted:

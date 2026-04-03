@@ -1,8 +1,15 @@
-// src/components/Leads/RepliesList.jsx
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { FiChevronUp, FiPlus } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronUp,
+  FiClock,
+  FiCornerUpLeft,
+  FiMail,
+  FiMessageSquare,
+  FiPlus,
+} from "react-icons/fi";
 
 const RepliesList = ({ replies, onAddReply }) => {
   const [expandedReply, setExpandedReply] = useState(null);
@@ -41,7 +48,7 @@ const RepliesList = ({ replies, onAddReply }) => {
             <p className="text-sm text-green-700 dark:text-green-300">
               {replies.length}{" "}
               {replies.length === 1 ? "reply has" : "replies have"} been
-              received from this lead.
+              received.
             </p>
           </div>
           <button
@@ -113,7 +120,6 @@ const RepliesList = ({ replies, onAddReply }) => {
                 className="border-t dark:border-gray-700"
               >
                 <div className="p-4 space-y-4">
-                  {/* Original Email Subject */}
                   {reply.subject && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -134,7 +140,6 @@ const RepliesList = ({ replies, onAddReply }) => {
                     </div>
                   )}
 
-                  {/* Reply Message */}
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                       <FiMessageSquare className="mr-2 h-4 w-4 text-green-500" />
@@ -145,7 +150,6 @@ const RepliesList = ({ replies, onAddReply }) => {
                     </div>
                   </div>
 
-                  {/* Reply Metadata */}
                   <div className="text-xs text-gray-500 dark:text-gray-400 pt-2">
                     <span>
                       Reply received:{" "}

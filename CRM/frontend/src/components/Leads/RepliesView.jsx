@@ -4,13 +4,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    FiChevronDown,
-    FiChevronUp,
-    FiClock,
-    FiCornerUpLeft,
-    FiMail,
-    FiMessageSquare,
-    FiUser,
+  FiChevronDown,
+  FiChevronUp,
+  FiClock,
+  FiCornerUpLeft,
+  FiMail,
+  FiMessageSquare,
+  FiUser,
 } from "react-icons/fi";
 import leadService from "../../services/leadService";
 
