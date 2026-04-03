@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { Provider, useSelector } from "react-redux";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import {
   Navigate,
   Route,
@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
 import Leads from "./pages/Leads";
 import Settings from "./pages/Settings";
+import { setSidebarOpen } from "./store/slices/uiSlice";
 import { store } from "./store/store";
 
 // Private Route Component
@@ -31,20 +32,39 @@ const PublicRoute = ({ children }) => {
 
 // Main App Content
 function AppContent() {
+  const dispatch = useDispatch();
   const { theme, fontSize } = useSelector((state) => state.ui);
+
+  // Handle window resize for responsive sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        // On desktop, restore saved preference or default to open
+        const savedState = localStorage.getItem("sidebarOpen");
+        if (savedState === null) {
+          dispatch(setSidebarOpen(true));
+        }
+      } else {
+        // On mobile, always close sidebar initially
+        dispatch(setSidebarOpen(false));
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [dispatch]);
 
   // Apply theme and font size
   useEffect(() => {
     const root = document.documentElement;
 
-    // Apply theme
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
 
-    // Apply font size - remove existing classes first
     root.classList.remove(
       "font-size-small",
       "font-size-medium",
@@ -55,7 +75,6 @@ function AppContent() {
 
   return (
     <>
-      {/* Skip to main content link for keyboard users */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-primary-600 focus:text-white focus:p-4 focus:rounded-lg"

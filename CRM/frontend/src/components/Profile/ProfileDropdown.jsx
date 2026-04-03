@@ -98,6 +98,7 @@ const ProfileDropdown = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Profile Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
@@ -116,6 +117,7 @@ const ProfileDropdown = () => {
         />
       </button>
 
+      {/* Dropdown Menu - Aligned to the right edge */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -124,7 +126,9 @@ const ProfileDropdown = () => {
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+            style={{ right: 0, left: "auto" }}
           >
+            {/* User Info Header */}
             <div className="p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white">
               <div className="flex items-center space-x-3">
                 <ProfileAvatar user={user} size="lg" />
@@ -140,6 +144,7 @@ const ProfileDropdown = () => {
               </div>
             </div>
 
+            {/* Menu Items */}
             <div className="py-2">
               {menuItems.map((item, index) => (
                 <button
@@ -155,6 +160,7 @@ const ProfileDropdown = () => {
               ))}
             </div>
 
+            {/* Theme Toggle */}
             <div className="border-t dark:border-gray-700 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -183,6 +189,7 @@ const ProfileDropdown = () => {
               </div>
             </div>
 
+            {/* Logout Button */}
             <div className="border-t dark:border-gray-700 p-2">
               <button
                 onClick={handleLogout}
@@ -195,6 +202,7 @@ const ProfileDropdown = () => {
               </button>
             </div>
 
+            {/* Footer */}
             <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
               <span>Version 2.0.0</span>
             </div>

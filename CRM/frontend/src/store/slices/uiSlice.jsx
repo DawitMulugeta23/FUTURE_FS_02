@@ -27,21 +27,31 @@ const getInitialFontSize = () => {
   }
 };
 
+const getInitialSidebarState = () => {
+  try {
+    // Check if it's mobile (width < 1024px)
+    const isMobile = window.innerWidth < 1024;
+    // On mobile, sidebar starts closed; on desktop, starts open
+    const savedState = localStorage.getItem("sidebarOpen");
+    if (savedState !== null) {
+      return savedState === "true";
+    }
+    return !isMobile;
+  } catch (error) {
+    return true;
+  }
+};
+
 const applyFontSize = (fontSize) => {
   try {
     const root = document.documentElement;
-
-    // Remove existing font size classes
     root.classList.remove(
       "font-size-small",
       "font-size-medium",
       "font-size-large",
     );
-
-    // Add new font size class
     root.classList.add(`font-size-${fontSize}`);
 
-    // Apply CSS variables for font sizes
     if (fontSize === "small") {
       root.style.setProperty("--font-size-base", "14px");
       root.style.setProperty("--font-size-sm", "12px");
@@ -65,11 +75,8 @@ const applyFontSize = (fontSize) => {
       root.style.setProperty("--font-size-3xl", "36px");
     }
 
-    // Apply to body
     document.body.style.fontSize = `var(--font-size-base)`;
-
     localStorage.setItem("fontSize", fontSize);
-    console.log("Font size applied:", fontSize);
   } catch (error) {
     console.error("Error applying font size:", error);
   }
@@ -96,7 +103,7 @@ const uiSlice = createSlice({
   initialState: {
     theme: getInitialTheme(),
     fontSize: getInitialFontSize(),
-    sidebarOpen: true,
+    sidebarOpen: getInitialSidebarState(),
     modalOpen: false,
   },
   reducers: {
@@ -115,6 +122,11 @@ const uiSlice = createSlice({
     },
     toggleSidebar: (state) => {
       state.sidebarOpen = !state.sidebarOpen;
+      localStorage.setItem("sidebarOpen", state.sidebarOpen);
+    },
+    setSidebarOpen: (state, action) => {
+      state.sidebarOpen = action.payload;
+      localStorage.setItem("sidebarOpen", action.payload);
     },
     setModalOpen: (state, action) => {
       state.modalOpen = action.payload;
@@ -122,7 +134,7 @@ const uiSlice = createSlice({
   },
 });
 
-// Apply initial settings on load
+// Apply initial settings
 applyTheme(getInitialTheme());
 applyFontSize(getInitialFontSize());
 
@@ -131,6 +143,7 @@ export const {
   setTheme,
   setFontSize,
   toggleSidebar,
+  setSidebarOpen,
   setModalOpen,
 } = uiSlice.actions;
 export default uiSlice.reducer;
