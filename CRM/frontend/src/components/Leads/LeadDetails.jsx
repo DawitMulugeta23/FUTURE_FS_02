@@ -3,16 +3,16 @@ import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-    FiBriefcase,
-    FiCalendar,
-    FiEdit2,
-    FiMail,
-    FiMessageSquare,
-    FiPhone,
-    FiSend,
-    FiTrash2,
-    FiUser,
-    FiX,
+  FiBriefcase,
+  FiCalendar,
+  FiEdit2,
+  FiMail,
+  FiMessageSquare,
+  FiPhone,
+  FiSend,
+  FiTrash2,
+  FiUser,
+  FiX,
 } from "react-icons/fi";
 import leadService from "../../services/leadService";
 import EmailHistory from "./EmailHistory";
