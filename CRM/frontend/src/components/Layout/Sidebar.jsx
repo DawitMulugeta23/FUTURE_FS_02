@@ -1,6 +1,13 @@
 // src/components/Layout/Sidebar.jsx
 import { useState } from "react";
-import { FiHome, FiPieChart, FiSettings, FiUsers } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiArrowRight,
+  FiHome,
+  FiPieChart,
+  FiSettings,
+  FiUsers,
+} from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink } from "react-router-dom";
 import { toggleSidebar } from "../../store/slices/uiSlice";
@@ -65,16 +72,22 @@ const Sidebar = () => {
                 `}
       >
         {/* Toggle Button - At the top of sidebar */}
-        <div className="relative w-full h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+        <div className="relative w-full h-20 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={handleToggleSidebar}
-            className={`hidden lg:flex items-center justify-center rounded-lg shadow-md hover:shadow-lg transition-all font-bold ${getToggleButtonColor()}`}
-            style={{ width: "60px", height: "40px", fontSize: "18px" }}
+            className={`hidden lg:flex items-center justify-center rounded-xl shadow-md hover:shadow-lg transition-all ${getToggleButtonColor()}`}
+            style={{ width: "80px", height: "56px" }}
           >
             {sidebarOpen ? (
-              <span className="text-lg">&lt;-</span>
+              <FiArrowLeft
+                className="h-8 w-8 stroke-[2.5]"
+                style={{ strokeWidth: "2.5" }}
+              />
             ) : (
-              <span className="text-lg">-&gt;</span>
+              <FiArrowRight
+                className="h-8 w-8 stroke-[2.5]"
+                style={{ strokeWidth: "2.5" }}
+              />
             )}
           </button>
         </div>
