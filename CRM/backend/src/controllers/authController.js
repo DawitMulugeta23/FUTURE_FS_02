@@ -224,6 +224,16 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(401).json({
+        success: false,
+        message: "Please verify your email before logging in",
+        needsVerification: true,
+        email: user.email,
+      });
+    }
+
     const token = generateToken(user._id);
     res.json({
       success: true,
@@ -244,13 +254,23 @@ const loginUser = async (req, res) => {
   }
 };
 
+// @desc    Get current user
+// @route   GET /api/auth/me
+// @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select("-password");
     res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-module.exports = { registerUser, loginUser, getMe };
+// Make sure ALL functions are exported
+module.exports = {
+  registerUser,
+  loginUser,
+  getMe,
+  verifyEmail,
+  resendVerification,
+};

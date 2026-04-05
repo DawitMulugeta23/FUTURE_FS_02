@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
 import Leads from "./pages/Leads";
 import Settings from "./pages/Settings";
+import VerifyEmail from "./pages/VerifyEmail"; // Changed this line
 import { setSidebarOpen } from "./store/slices/uiSlice";
 import { store } from "./store/store";
 
