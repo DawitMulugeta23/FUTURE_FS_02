@@ -29,7 +29,6 @@ const ProfileDropdown = () => {
   const { user } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.ui);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -118,7 +117,7 @@ const ProfileDropdown = () => {
         />
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - Aligned to the right edge */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -127,6 +126,7 @@ const ProfileDropdown = () => {
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.1 }}
             className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
+            style={{ right: 0, left: "auto" }}
           >
             {/* User Info Header */}
             <div className="p-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white">

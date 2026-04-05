@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { Provider, useSelector } from "react-redux";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import {
   Navigate,
   Route,
@@ -14,7 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
 import Leads from "./pages/Leads";
 import Settings from "./pages/Settings";
-import VerifyEmail from "./pages/VerifyEmail";
+import { setSidebarOpen } from "./store/slices/uiSlice";
 import { store } from "./store/store";
 
 // Private Route Component
@@ -31,43 +31,46 @@ const PublicRoute = ({ children }) => {
 
 // Main App Content
 function AppContent() {
-  const { theme, fontSize, highContrast, reduceMotion } = useSelector(
-    (state) => state.ui,
-  );
+  const dispatch = useDispatch();
+  const { theme, fontSize } = useSelector((state) => state.ui);
 
-  // Apply theme and accessibility settings
+  // Handle window resize for responsive sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        // On desktop, restore saved preference or default to open
+        const savedState = localStorage.getItem("sidebarOpen");
+        if (savedState === null) {
+          dispatch(setSidebarOpen(true));
+        }
+      } else {
+        // On mobile, always close sidebar initially
+        dispatch(setSidebarOpen(false));
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [dispatch]);
+
+  // Apply theme and font size
   useEffect(() => {
     const root = document.documentElement;
 
-    // Apply theme
     if (theme === "dark") {
       root.classList.add("dark");
-      root.setAttribute("data-theme", "dark");
     } else {
       root.classList.remove("dark");
-      root.removeAttribute("data-theme");
     }
 
-    // Apply font size
-    root.classList.remove("text-sm", "text-base", "text-lg", "text-xl");
-    root.classList.add(`text-${fontSize}`);
-    document.body.style.fontSize =
-      fontSize === "small" ? "14px" : fontSize === "medium" ? "16px" : "18px";
-
-    // Apply high contrast
-    if (highContrast) {
-      root.classList.add("high-contrast");
-    } else {
-      root.classList.remove("high-contrast");
-    }
-
-    // Apply reduce motion
-    if (reduceMotion) {
-      root.classList.add("reduce-motion");
-    } else {
-      root.classList.remove("reduce-motion");
-    }
-  }, [theme, fontSize, highContrast, reduceMotion]);
+    root.classList.remove(
+      "font-size-small",
+      "font-size-medium",
+      "font-size-large",
+    );
+    root.classList.add(`font-size-${fontSize}`);
+  }, [theme, fontSize]);
 
   return (
     <>

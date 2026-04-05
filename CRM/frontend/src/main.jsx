@@ -6,6 +6,8 @@ import App from "./App";
 import "./index.css";
 import { store } from "./store/store";
 
+// DO NOT add Font Awesome import here
+
 // Ensure document is available
 if (typeof document !== "undefined") {
   const rootElement = document.getElementById("root");

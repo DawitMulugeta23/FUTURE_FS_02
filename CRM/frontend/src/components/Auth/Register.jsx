@@ -1,3 +1,4 @@
+// src/components/Auth/Register.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FiLock, FiMail, FiUser, FiUserPlus } from "react-icons/fi";
@@ -16,36 +17,52 @@ const Register = () => {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
-
-  const validateEmail = (email) => {
-    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-    if (!email) return "Email is required";
-    if (!emailRegex.test(email)) return "Please enter a valid email address";
-    return "";
-  };
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
+      [e.target.name]: e.target.value,
     });
-
-    if (name === "email") {
-      setEmailError(validateEmail(value));
+    // Clear error for this field when user starts typing
+    if (errors[e.target.name]) {
+      setErrors({ ...errors, [e.target.name]: "" });
     }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate email
-    const emailValidationError = validateEmail(
-      formData.email.trim().toLowerCase(),
-    );
-    if (emailValidationError) {
-      toast.error(emailValidationError);
+    if (!validateForm()) {
       return;
     }
 
@@ -55,49 +72,30 @@ const Register = () => {
       password: formData.password,
     };
 
-    if (!payload.name || !payload.email || !payload.password) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    if (payload.password !== formData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (payload.password.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
     setLoading(true);
     try {
       const result = await dispatch(register(payload)).unwrap();
 
       if (result?.token || result?._id || result?.id) {
+        toast.success("Registration successful! Welcome to CRM System");
         setFormData({
           name: "",
           email: "",
           password: "",
           confirmPassword: "",
         });
-        // Don't navigate immediately - user needs to verify email
-        navigate("/login", {
-          state: {
-            message:
-              "Registration successful! Please check your email to verify your account.",
-          },
-        });
-        return;
+        navigate("/dashboard");
+      } else {
+        throw new Error(
+          "Registration succeeded but no user data was returned.",
+        );
       }
-
-      throw new Error("Registration succeeded but no user data was returned.");
     } catch (error) {
+      console.error("Registration error:", error);
       const message =
         typeof error === "string"
           ? error
           : error?.message || "Registration failed. Please try again.";
-      console.error("Registration error:", error);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -123,12 +121,13 @@ const Register = () => {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
+            {/* Name Field */}
             <div>
               <label
                 htmlFor="name"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Full Name *
+                Full Name
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -141,18 +140,28 @@ const Register = () => {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className={`appearance-none block w-full pl-10 pr-3 py-3 border rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    errors.name
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                  }`}
                   placeholder="Enter your full name"
                 />
               </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {errors.name}
+                </p>
+              )}
             </div>
 
+            {/* Email Field */}
             <div>
               <label
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Email address *
+                Email address
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -167,24 +176,27 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-3 border rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
-                    emailError && formData.email
+                    errors.email
                       ? "border-red-500"
                       : "border-gray-300 dark:border-gray-600"
                   }`}
                   placeholder="Enter your email"
                 />
               </div>
-              {emailError && formData.email && (
-                <p className="mt-1 text-xs text-red-500">{emailError}</p>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {errors.email}
+                </p>
               )}
             </div>
 
+            {/* Password Field */}
             <div>
               <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Password *
+                Password
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -197,23 +209,31 @@ const Register = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Create a password (min. 6 characters)"
+                  className={`appearance-none block w-full pl-10 pr-3 py-3 border rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    errors.password
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                  }`}
+                  placeholder="Create a password"
                 />
               </div>
-              {formData.password && formData.password.length < 6 && (
-                <p className="mt-1 text-xs text-red-500">
-                  Password must be at least 6 characters
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {errors.password}
                 </p>
               )}
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Must be at least 6 characters
+              </p>
             </div>
 
+            {/* Confirm Password Field */}
             <div>
               <label
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                Confirm Password *
+                Confirm Password
               </label>
               <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -226,16 +246,19 @@ const Register = () => {
                   required
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className={`appearance-none block w-full pl-10 pr-3 py-3 border rounded-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    errors.confirmPassword
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                  }`}
                   placeholder="Confirm your password"
                 />
               </div>
-              {formData.confirmPassword &&
-                formData.password !== formData.confirmPassword && (
-                  <p className="mt-1 text-xs text-red-500">
-                    Passwords do not match
-                  </p>
-                )}
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {errors.confirmPassword}
+                </p>
+              )}
             </div>
           </div>
 

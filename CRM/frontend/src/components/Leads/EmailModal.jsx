@@ -1,19 +1,16 @@
-// src/components/EmailComposer.jsx
+// src/components/Leads/EmailModal.jsx
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { FiMail, FiSend, FiX } from "react-icons/fi";
 import { useDispatch } from "react-redux";
-import { sendEmailToLead } from "../store/slices/leadSlice";
+import { sendEmailToLead } from "../../store/slices/leadSlice";
 
-const EmailComposer = ({ leads, onClose, onSuccess }) => {
+const EmailModal = ({ lead, onClose, onSuccess }) => {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    subject:
-      leads.length === 1
-        ? `Follow-up: ${leads[0].firstName} ${leads[0].lastName}`
-        : `Follow-up for ${leads.length} leads`,
-    message: `Hello,\n\nI hope this email finds you well. I wanted to follow up regarding your interest in our services.\n\nPlease let me know if you have any questions.\n\nBest regards,\nCRM Team`,
+    subject: `Follow-up: ${lead.firstName} ${lead.lastName}`,
+    message: `Hello ${lead.firstName},\n\nI hope this email finds you well. I wanted to follow up regarding your interest in our services.\n\nPlease let me know if you have any questions.\n\nBest regards,\nCRM Team`,
   });
 
   const handleChange = (e) => {
@@ -28,27 +25,19 @@ const EmailComposer = ({ leads, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      // Send emails to all selected leads
-      const emailPromises = leads.map((lead) =>
-        dispatch(
-          sendEmailToLead({
-            id: lead._id,
-            subject: formData.subject,
-            message: formData.message,
-          }),
-        ).unwrap(),
-      );
+      await dispatch(
+        sendEmailToLead({
+          id: lead._id,
+          subject: formData.subject,
+          message: formData.message,
+        }),
+      ).unwrap();
 
-      await Promise.all(emailPromises);
-
-      toast.success(
-        `Email${leads.length > 1 ? "s" : ""} sent to ${leads.length} lead${leads.length > 1 ? "s" : ""}!`,
-      );
+      toast.success("Email sent successfully!");
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error("Error sending email:", error);
-      toast.error("Failed to send some emails. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +49,7 @@ const EmailComposer = ({ leads, onClose, onSuccess }) => {
         <div className="flex justify-between items-center p-6 border-b dark:border-gray-700">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
             <FiMail className="mr-2 h-6 w-6 text-primary-600" />
-            Send Email {leads.length > 1 ? `to ${leads.length} Leads` : ""}
+            Send Email to {lead.firstName} {lead.lastName}
           </h2>
           <button
             onClick={onClose}
@@ -75,16 +64,12 @@ const EmailComposer = ({ leads, onClose, onSuccess }) => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               To
             </label>
-            <div className="max-h-32 overflow-y-auto p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
-              {leads.map((lead) => (
-                <div
-                  key={lead._id}
-                  className="text-sm text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  {lead.firstName} {lead.lastName} - {lead.email}
-                </div>
-              ))}
-            </div>
+            <input
+              type="email"
+              value={lead.email}
+              disabled
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+            />
           </div>
 
           <div>
@@ -129,33 +114,11 @@ const EmailComposer = ({ leads, onClose, onSuccess }) => {
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
               {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span>Sending...</span>
-                </>
+                <span>Sending...</span>
               ) : (
                 <>
                   <FiSend className="h-4 w-4" />
-                  <span>Send Email{leads.length > 1 ? "s" : ""}</span>
+                  <span>Send Email</span>
                 </>
               )}
             </button>
@@ -166,4 +129,4 @@ const EmailComposer = ({ leads, onClose, onSuccess }) => {
   );
 };
 
-export default EmailComposer;
+export default EmailModal;

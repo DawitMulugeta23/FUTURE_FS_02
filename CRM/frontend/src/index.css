@@ -5,23 +5,96 @@
 
 @layer base {
   :root {
+    /* Default font sizes (medium) */
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 30px;
+
     color-scheme: light dark;
   }
 
+  /* Font size classes */
+  .font-size-small {
+    --font-size-base: 14px;
+    --font-size-sm: 12px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --font-size-2xl: 20px;
+    --font-size-3xl: 24px;
+  }
+
+  .font-size-medium {
+    --font-size-base: 16px;
+    --font-size-sm: 14px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 30px;
+  }
+
+  .font-size-large {
+    --font-size-base: 18px;
+    --font-size-sm: 16px;
+    --font-size-lg: 20px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 28px;
+    --font-size-3xl: 36px;
+  }
+
   html {
-    @apply transition-colors duration-200;
+    font-size: var(--font-size-base);
+    transition: all 0.3s ease;
   }
 
   body {
+    font-size: var(--font-size-base);
+    line-height: 1.5;
     @apply bg-gray-50 text-gray-900 m-0 min-h-screen;
   }
-  
+
+  /* Apply font sizes to all elements */
+  h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  h3 {
+    font-size: var(--font-size-xl);
+  }
+
+  h4 {
+    font-size: var(--font-size-lg);
+  }
+
+  p,
+  span,
+  div,
+  li,
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label {
+    font-size: var(--font-size-base);
+  }
+
+  small,
+  .text-sm {
+    font-size: var(--font-size-sm);
+  }
+
   /* Dark mode styles */
   html.dark body {
     @apply bg-gray-900 text-gray-100;
   }
 
-  /* Ensure all base elements get dark mode */
   html.dark {
     color-scheme: dark;
   }
@@ -31,10 +104,6 @@
   html.dark textarea {
     @apply bg-gray-800 border-gray-700 text-white;
   }
-
-  html.dark button:not(.btn-primary):not(.btn-secondary):not(.btn-danger) {
-    @apply text-gray-200;
-  }
 }
 
 @layer components {
@@ -43,25 +112,25 @@
            transition-colors duration-200 font-medium
            dark:bg-primary-500 dark:hover:bg-primary-600;
   }
-  
+
   .btn-secondary {
     @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 
            transition-colors duration-200 font-medium
            dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600;
   }
-  
+
   .btn-danger {
     @apply bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 
            transition-colors duration-200 font-medium
            dark:bg-red-500 dark:hover:bg-red-600;
   }
-  
+
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg 
            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
            dark:bg-gray-800 dark:border-gray-700 dark:text-white;
   }
-  
+
   .card {
     @apply bg-white rounded-xl shadow-md p-6
            dark:bg-gray-800 dark:text-white;

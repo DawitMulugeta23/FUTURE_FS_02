@@ -1,3 +1,4 @@
+// src/store/slices/leadSlice.js
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import leadService from "../../services/leadService";
@@ -87,15 +88,58 @@ export const addNote = createAsyncThunk(
 
 export const fetchAnalytics = createAsyncThunk(
   "leads/fetchAnalytics",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const response = await leadService.getAnalytics();
+      const queryParams = new URLSearchParams();
+      if (params.range) {
+        queryParams.append("range", params.range);
+      }
+      const queryString = queryParams.toString();
+      const url = queryString
+        ? `/leads/analytics?${queryString}`
+        : `/leads/analytics`;
+      const response = await leadService.getAnalytics(url);
+      console.log("Analytics response:", response);
       return response.data;
     } catch (error) {
       console.error("Error fetching analytics:", error);
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch analytics",
       );
+    }
+  },
+);
+
+export const sendEmailToLead = createAsyncThunk(
+  "leads/sendEmail",
+  async ({ id, subject, message }, { rejectWithValue }) => {
+    try {
+      const response = await leadService.sendEmail(id, { subject, message });
+      return response.data;
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to send email";
+      toast.error(message);
+      return rejectWithValue(message);
+    }
+  },
+);
+
+export const fetchEmailHistory = createAsyncThunk(
+  "leads/fetchEmailHistory",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await leadService.getEmailHistory(id);
+      return { id, emails: response.data };
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch email history";
+      toast.error(message);
+      return rejectWithValue(message);
     }
   },
 );
@@ -155,6 +199,7 @@ const leadSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Fetch Leads
       .addCase(fetchLeads.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -174,6 +219,7 @@ const leadSlice = createSlice({
         state.error = action.payload;
         state.leads = [];
       })
+      // Create Lead
       .addCase(createLead.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -189,6 +235,7 @@ const leadSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Update Lead
       .addCase(updateLead.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -211,6 +258,7 @@ const leadSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Delete Lead
       .addCase(deleteLead.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -226,6 +274,7 @@ const leadSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Add Note
       .addCase(addNote.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -248,12 +297,14 @@ const leadSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // Fetch Analytics
       .addCase(fetchAnalytics.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchAnalytics.fulfilled, (state, action) => {
         state.loading = false;
+        console.log("Updating analytics with:", action.payload);
         state.analytics = action.payload || {
           total: 0,
           recent: 0,
@@ -269,6 +320,58 @@ const leadSlice = createSlice({
         };
       })
       .addCase(fetchAnalytics.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        console.error("Analytics fetch rejected:", action.payload);
+      })
+      // Send Email
+      .addCase(sendEmailToLead.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(sendEmailToLead.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload && action.payload.data) {
+          // Update lead with new email history
+          const leadIndex = state.leads.findIndex(
+            (lead) => lead._id === action.payload.data._id,
+          );
+          if (leadIndex !== -1) {
+            state.leads[leadIndex] = action.payload.data;
+          }
+          if (state.selectedLead?._id === action.payload.data._id) {
+            state.selectedLead = action.payload.data;
+          }
+        }
+        toast.success("Email sent successfully!");
+      })
+      .addCase(sendEmailToLead.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch Email History
+      .addCase(fetchEmailHistory.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchEmailHistory.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          if (
+            state.selectedLead &&
+            state.selectedLead._id === action.payload.id
+          ) {
+            state.selectedLead.emailHistory = action.payload.emails;
+          }
+          const leadIndex = state.leads.findIndex(
+            (lead) => lead._id === action.payload.id,
+          );
+          if (leadIndex !== -1) {
+            state.leads[leadIndex].emailHistory = action.payload.emails;
+          }
+        }
+      })
+      .addCase(fetchEmailHistory.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

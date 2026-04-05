@@ -33,6 +33,26 @@ const leadService = {
     return response.data;
   },
 
+  async sendEmail(id, emailData) {
+    const response = await api.post(`/leads/${id}/email`, emailData);
+    return response.data;
+  },
+
+  async getEmailHistory(id) {
+    const response = await api.get(`/leads/${id}/emails`);
+    return response.data;
+  },
+
+  async addLeadReply(id, replyMessage) {
+    const response = await api.post(`/leads/${id}/reply`, { replyMessage });
+    return response.data;
+  },
+
+  async getReplies(id) {
+    const response = await api.get(`/leads/${id}/replies`);
+    return response.data;
+  },
+
   async getAnalytics() {
     const response = await api.get("/leads/analytics");
     return response.data;
