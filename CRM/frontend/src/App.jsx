@@ -12,7 +12,7 @@ import Register from "./components/Auth/Register";
 import Analytics from "./pages/Analytics";
 import Dashboard from "./pages/Dashboard";
 import Help from "./pages/Help";
-import Leads from "./pages/Leads";
+import Leads from "./pages/leads";
 import Settings from "./pages/Settings";
 import VerifyEmail from "./pages/VerifyEmail"; // Changed this line
 import { setSidebarOpen } from "./store/slices/uiSlice";
